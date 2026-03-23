@@ -16,7 +16,6 @@ from pipeline.config import ensure_directories
 logger = get_logger(__name__)
 
 
-
 def run_pipeline():
     logger.info("Pipeline started.")
 
