@@ -18,5 +18,10 @@ class Settings:
     log_file: str = os.getenv("LOG_FILE", "logs/pipeline.log")
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
 
+    stg_table: str = os.getenv("STG_TABLE", "stg_orders")
+    dwh_table: str = os.getenv("DWH_TABLE", "orders_clean")
+    mart_table: str = os.getenv("MART_TABLE", "sales_daily")
+    pipeline_runs_table: str = os.getenv("PIPELINE_RUNS_TABLE", "pipeline_runs")
+
 
 settings = Settings()

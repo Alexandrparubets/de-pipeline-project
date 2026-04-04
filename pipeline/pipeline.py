@@ -1,5 +1,6 @@
 from pipeline.logger_config import get_logger, set_run_id
 from pipeline.connection import get_engine, test_connection
+from pipeline.setup_db import setup_database
 
 
 logger = get_logger("pipeline.run")
@@ -11,6 +12,7 @@ def run_pipeline() -> None:
 
     engine = get_engine()
     test_connection(engine)
+    setup_database(engine)
 
     logger.info("✅ Pipeline finished")
 
