@@ -3,7 +3,8 @@ from pipeline.connection import get_engine, test_connection
 from pipeline.setup_db import setup_database
 from pipeline.metadata import (start_pipeline_run,
     finish_pipeline_run_success,
-    finish_pipeline_run_failed
+    finish_pipeline_run_failed,
+    get_last_successful_watermark
 )
 
 
@@ -22,7 +23,8 @@ def run_pipeline() -> None:
         setup_database(engine)
         run_id = start_pipeline_run(engine, pipeline_name)
         set_run_id(run_id)
-        
+        last_watermark = get_last_successful_watermark(engine, pipeline_name)
+
         finish_pipeline_run_success(
             engine=engine,
             run_id=run_id,

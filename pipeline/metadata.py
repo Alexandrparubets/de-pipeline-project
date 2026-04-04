@@ -119,3 +119,35 @@ def finish_pipeline_run_failed(
     logger.error(
         f"Pipeline run failed: id={run_id}, status='failed', error='{error_message}'"
     )
+
+
+def get_last_successful_watermark(engine: Engine, pipeline_name: str):
+    """
+    Returns watermark_value from the last successful pipeline run.
+    If no successful run exists, returns None.
+    """
+    select_sql = f"""
+    SELECT watermark_value
+    FROM {settings.pipeline_runs_table}
+    WHERE pipeline_name = :pipeline_name
+      AND status = 'success'
+    ORDER BY finished_at DESC
+    LIMIT 1;
+    """
+
+    with engine.begin() as conn:
+        result = conn.execute(
+            text(select_sql),
+            {"pipeline_name": pipeline_name},
+        ).scalar()
+
+    if result is not None:
+        logger.info(
+            f"Last successful watermark found for pipeline '{pipeline_name}': {result}"
+        )
+    else:
+        logger.info(
+            f"No successful watermark found for pipeline '{pipeline_name}'."
+        )
+
+    return result
