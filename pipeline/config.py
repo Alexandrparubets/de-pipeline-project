@@ -27,6 +27,8 @@ class Settings:
     "SOURCE_FILE",
     "data/source/online_retail.xlsx",
 )
+    raw_dir: str = os.getenv("RAW_DIR", "data/raw")
+    raw_file_prefix: str = os.getenv("RAW_FILE_PREFIX", "online_retail")
 
 
 settings = Settings()
