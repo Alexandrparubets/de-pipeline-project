@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import os
 from dotenv import load_dotenv
 
@@ -19,6 +19,18 @@ class Settings:
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
 
     stg_table: str = os.getenv("STG_TABLE", "stg_orders")
+    stg_schema: dict[str, str] = field(default_factory=lambda: {
+    "invoiceno": "TEXT",
+    "stockcode": "TEXT",
+    "description": "TEXT",
+    "quantity": "INTEGER",
+    "invoicedate": "TIMESTAMP",
+    "unitprice": "NUMERIC",
+    "customerid": "INTEGER",
+    "country": "TEXT",
+    "revenue": "NUMERIC",
+    "row_hash": "TEXT",
+})
     dwh_table: str = os.getenv("DWH_TABLE", "orders_clean")
     mart_table: str = os.getenv("MART_TABLE", "sales_daily")
     pipeline_runs_table: str = os.getenv("PIPELINE_RUNS_TABLE", "pipeline_runs")
@@ -30,5 +42,8 @@ class Settings:
     raw_dir: str = os.getenv("RAW_DIR", "data/raw")
     raw_file_prefix: str = os.getenv("RAW_FILE_PREFIX", "online_retail")
 
+    chunk_size: int = int(os.getenv("CHUNK_SIZE", 5000))
+
+    
 
 settings = Settings()

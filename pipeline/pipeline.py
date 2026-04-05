@@ -9,6 +9,7 @@ from pipeline.metadata import (start_pipeline_run,
 from pipeline.extract import get_source_file_path
 from pipeline.raw import create_raw_copy
 from pipeline.transform import load_raw_to_dataframe, clean_dataframe
+from pipeline.load_stg import load_to_stg, align_to_stg_columns
 
 
 logger = get_logger("pipeline.run")
@@ -31,6 +32,9 @@ def run_pipeline() -> None:
         raw_file_path, file_hash = create_raw_copy(source_file, pipeline_name)
         df = load_raw_to_dataframe(raw_file_path)
         df = clean_dataframe(df)
+        df = align_to_stg_columns(df)
+        loaded_rows = load_to_stg(df, engine)
+        
 
         finish_pipeline_run_success(
             engine=engine,

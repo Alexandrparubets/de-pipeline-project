@@ -14,6 +14,7 @@ def setup_database(engine: Engine) -> None:
     Creates tables and constraints if they do not exist.
     Does not delete or overwrite existing data.
     """
+    drop_stg_table(engine)
     create_stg_table(engine)
     create_dwh_table(engine)
     create_mart_table(engine)
@@ -21,26 +22,29 @@ def setup_database(engine: Engine) -> None:
 
 
 def create_stg_table(engine: Engine) -> None:
-    create_table_sql = f"""
-    CREATE TABLE IF NOT EXISTS {settings.stg_table} (
-        row_hash TEXT,
-        invoiceno TEXT,
-        stockcode TEXT,
-        description TEXT,
-        quantity INTEGER,
-        invoicedate TIMESTAMP,
-        unitprice NUMERIC(12, 4),
-        customerid INTEGER,
-        country TEXT,
-        revenue NUMERIC(14, 2)
+    table_name = settings.stg_table
+    stg_schema = settings.stg_schema
+
+    if not stg_schema:
+        raise ValueError("STG schema is empty")
+
+    columns_sql = ",\n        ".join(
+        f"{column} {data_type}" for column, data_type in stg_schema.items()
+    )
+
+    create_sql = f"""
+    CREATE TABLE IF NOT EXISTS {table_name} (
+        {columns_sql}
     );
     """
 
+    logger.debug(f"STG CREATE SQL:\n{create_sql}")
+
     with engine.begin() as conn:
-        conn.execute(text(create_table_sql))
+        conn.execute(text(create_sql))
 
     logger.info(
-        f"Staging ready: table '{settings.stg_table}' is created (or already exists)."
+        f"Staging ready: table '{table_name}' is created (or already exists)."
     )
 
 
@@ -128,3 +132,14 @@ def create_pipeline_runs_table(engine: Engine) -> None:
     logger.info(
         f"Metadata ready: table '{settings.pipeline_runs_table}' is created (or already exists)."
     )
+
+
+def drop_stg_table(engine: Engine) -> None:
+    table_name = settings.stg_table
+
+    drop_sql = f"DROP TABLE IF EXISTS {table_name};"
+
+    with engine.begin() as conn:
+        conn.execute(text(drop_sql))
+
+    logger.info(f"Staging dropped: table '{table_name}' was removed.")
