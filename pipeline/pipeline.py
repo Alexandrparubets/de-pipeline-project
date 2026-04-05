@@ -8,6 +8,7 @@ from pipeline.metadata import (start_pipeline_run,
 )
 from pipeline.extract import get_source_file_path
 from pipeline.raw import create_raw_copy
+from pipeline.transform import load_raw_to_dataframe, clean_dataframe
 
 
 logger = get_logger("pipeline.run")
@@ -28,6 +29,8 @@ def run_pipeline() -> None:
         last_watermark = get_last_successful_watermark(engine, pipeline_name)
         source_file = get_source_file_path()
         raw_file_path, file_hash = create_raw_copy(source_file, pipeline_name)
+        df = load_raw_to_dataframe(raw_file_path)
+        df = clean_dataframe(df)
 
         finish_pipeline_run_success(
             engine=engine,
