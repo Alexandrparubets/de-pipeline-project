@@ -11,6 +11,7 @@ from pipeline.raw import create_raw_copy
 from pipeline.transform import load_raw_to_dataframe, clean_dataframe
 from pipeline.load_stg import load_to_stg, align_to_stg_columns
 from pipeline.quality import run_quality_checks
+from pipeline.load_dwh import load_stg_to_dwh
 
 
 logger = get_logger("pipeline.run")
@@ -36,6 +37,10 @@ def run_pipeline() -> None:
         df = align_to_stg_columns(df)
         rows_in_stg = load_to_stg(df, engine)
         run_quality_checks(engine)
+        dwh_stats = load_stg_to_dwh(engine)
+        attempted_rows = dwh_stats["attempted_rows"]
+        inserted_rows = dwh_stats["inserted_rows"]
+        skipped_rows = dwh_stats["skipped_rows"]
         
 
         finish_pipeline_run_success(
@@ -43,6 +48,8 @@ def run_pipeline() -> None:
             run_id=run_id,
             rows_in_stg=rows_in_stg,
             watermark_value=watermark_value,
+            rows_loaded_to_dwh=inserted_rows,
+            rows_skipped_in_dwh=skipped_rows,
         )
         logger.info("✅ Pipeline finished")
 
