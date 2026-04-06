@@ -3,12 +3,13 @@ from pathlib import Path
 import hashlib
 
 from pipeline.logger_config import get_logger
+from pipeline.metadata import get_last_successful_historical_hash
 
 
 logger = get_logger("pipeline.transform")
 
 
-def load_raw_to_dataframe(raw_file_path: Path, last_loaded_date=None) -> pd.DataFrame:
+def load_raw_to_dataframe(engine, pipeline_name, raw_file_path: Path, last_watermark=None, ) -> pd.DataFrame:
     """
     Reads RAW Excel file into pandas DataFrame,
     validates that it is not empty,
@@ -27,18 +28,34 @@ def load_raw_to_dataframe(raw_file_path: Path, last_loaded_date=None) -> pd.Data
         logger.error(f"RAW file is empty: '{raw_file_path}'")
         raise ValueError(f"RAW file is empty: {raw_file_path}")
     
+    df["InvoiceDate"] = pd.to_datetime(df["InvoiceDate"])
+    df.columns = normalize_column_names(df.columns)
+    
+    last_historical_hash = get_last_successful_historical_hash(engine, pipeline_name)
+    historical_hash = calculate_historical_hash(df, last_watermark)
+
+    if (
+        last_historical_hash is not None
+        and historical_hash is not None
+        and historical_hash != last_historical_hash
+    ):
+        logger.warning(
+            "Historical source data has changed compared to the last successful run."
+        )
+
     logger.info(f"Initial rows loaded from RAW: {len(df)}")
 
-    df["InvoiceDate"] = pd.to_datetime(df["InvoiceDate"])
-
-    if last_loaded_date is None:
+    if last_watermark is None:
         logger.info("No watermark found. Full RAW file will be loaded.")
     else:
-        logger.info(f"Applying watermark filter: InvoiceDate >= {last_loaded_date}")
-        df = df[df["InvoiceDate"] >= last_loaded_date].copy()
+        logger.info(f"Applying watermark filter: InvoiceDate >= {last_watermark}")
+        df = df[df["invoicedate"] >= last_watermark].copy()
         logger.info(f"Rows after watermark filter: {len(df)}")
+        if df.empty:
+            logger.info("No new rows found after watermark filter.")
+            return df, historical_hash
 
-    df.columns = normalize_column_names(df.columns)
+    
 
     logger.info(
         f"RAW file loaded successfully: '{raw_file_path}' | "
@@ -46,7 +63,7 @@ def load_raw_to_dataframe(raw_file_path: Path, last_loaded_date=None) -> pd.Data
     )
     logger.info(f"Normalized columns: {list(df.columns)}")
 
-    return df
+    return df, historical_hash
 
 
 def normalize_column_names(columns) -> list[str]:
@@ -236,3 +253,29 @@ def remove_duplicates_by_row_hash(df: pd.DataFrame) -> pd.DataFrame:
 
     logger.info(f"Removed duplicate rows by row_hash: {before - after} rows")
     return df
+
+
+def calculate_historical_hash(df: pd.DataFrame, last_watermark) -> str | None:
+    """
+    Calculate hash for historical part of source data
+    (rows with InvoiceDate < last_watermark).
+    """
+    if last_watermark is None:
+        boundary_date = df["invoicedate"].max()
+    else:
+        boundary_date = last_watermark
+
+    historical_df = df[df["invoicedate"] < boundary_date].copy()
+    logger.info(f"historical_hash -> last_watermark: {last_watermark} max data: {df["invoicedate"].max()}")
+
+    if historical_df.empty:
+        return None
+
+    historical_df = historical_df.sort_values(
+        by=list(historical_df.columns)
+    ).fillna("")
+
+    payload = historical_df.to_csv(index=False)
+    historical_hash = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+    return historical_hash

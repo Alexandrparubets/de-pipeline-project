@@ -49,6 +49,7 @@ def finish_pipeline_run_success(
     engine: Engine,
     run_id: int,
     watermark_value=None,
+    historical_hash: str | None =  None,
     rows_in_stg: int | None = None,
     rows_loaded_to_dwh: int | None = None,
     rows_skipped_in_dwh: int | None = None,
@@ -63,6 +64,7 @@ def finish_pipeline_run_success(
         status = 'success',
         finished_at = :finished_at,
         watermark_value = :watermark_value,
+        historical_hash = :historical_hash,
         rows_in_stg = :rows_in_stg,
         rows_loaded_to_dwh = :rows_loaded_to_dwh,
         rows_skipped_in_dwh = :rows_skipped_in_dwh,
@@ -77,6 +79,7 @@ def finish_pipeline_run_success(
                 "run_id": run_id,
                 "finished_at": datetime.now(),
                 "watermark_value": watermark_value,
+                "historical_hash": historical_hash,
                 "rows_in_stg": rows_in_stg,
                 "rows_loaded_to_dwh": rows_loaded_to_dwh,
                 "rows_skipped_in_dwh": rows_skipped_in_dwh,
@@ -149,5 +152,24 @@ def get_last_successful_watermark(engine: Engine, pipeline_name: str):
         logger.info(
             f"No successful watermark found for pipeline '{pipeline_name}'."
         )
+
+    return result
+
+
+def get_last_successful_historical_hash(engine, pipeline_name: str) -> str | None:
+    query = """
+    SELECT historical_hash
+    FROM pipeline_runs
+    WHERE pipeline_name = :pipeline_name
+      AND status = 'success'
+    ORDER BY finished_at DESC
+    LIMIT 1;
+    """
+
+    with engine.begin() as conn:
+        result = conn.execute(
+            text(query),
+            {"pipeline_name": pipeline_name},
+        ).scalar()
 
     return result

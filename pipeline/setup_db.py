@@ -119,6 +119,7 @@ def create_pipeline_runs_table(engine: Engine) -> None:
         started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         finished_at TIMESTAMP,
         watermark_value TIMESTAMP,
+        historical_hash TEXT,
         rows_in_stg INTEGER,
         rows_loaded_to_dwh INTEGER,
         rows_skipped_in_dwh INTEGER,
