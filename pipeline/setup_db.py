@@ -48,6 +48,29 @@ def create_stg_table(engine: Engine) -> None:
     )
 
 
+
+def truncate_dwh_table(engine: Engine) -> None:
+    table_name = settings.dwh_table
+
+    truncate_sql = f"""
+    TRUNCATE TABLE {table_name}
+    RESTART IDENTITY CASCADE;
+    """
+
+    try:
+        with engine.begin() as conn:
+            conn.execute(text(truncate_sql))
+
+        logger.warning(
+            f"DWH table '{table_name}' truncated due to historical data change."
+        )
+
+    except Exception as e:
+        logger.exception(f"Error truncating table '{table_name}': {e}")
+        raise
+
+
+
 def create_dwh_table(engine: Engine) -> None:
     create_table_sql = f"""
     CREATE TABLE IF NOT EXISTS {settings.dwh_table} (
@@ -119,6 +142,7 @@ def create_pipeline_runs_table(engine: Engine) -> None:
         started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         finished_at TIMESTAMP,
         watermark_value TIMESTAMP,
+        boundary_date TIMESTAMP,
         historical_hash TEXT,
         rows_in_stg INTEGER,
         rows_loaded_to_dwh INTEGER,

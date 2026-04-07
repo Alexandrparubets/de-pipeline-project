@@ -49,6 +49,7 @@ def finish_pipeline_run_success(
     engine: Engine,
     run_id: int,
     watermark_value=None,
+    boundary_date = None,
     historical_hash: str | None =  None,
     rows_in_stg: int | None = None,
     rows_loaded_to_dwh: int | None = None,
@@ -64,6 +65,7 @@ def finish_pipeline_run_success(
         status = 'success',
         finished_at = :finished_at,
         watermark_value = :watermark_value,
+        boundary_date = :boundary_date,
         historical_hash = :historical_hash,
         rows_in_stg = :rows_in_stg,
         rows_loaded_to_dwh = :rows_loaded_to_dwh,
@@ -79,6 +81,7 @@ def finish_pipeline_run_success(
                 "run_id": run_id,
                 "finished_at": datetime.now(),
                 "watermark_value": watermark_value,
+                "boundary_date": boundary_date,
                 "historical_hash": historical_hash,
                 "rows_in_stg": rows_in_stg,
                 "rows_loaded_to_dwh": rows_loaded_to_dwh,
@@ -126,11 +129,11 @@ def finish_pipeline_run_failed(
 
 def get_last_successful_watermark(engine: Engine, pipeline_name: str):
     """
-    Returns watermark_value from the last successful pipeline run.
+    Returns watermark_value and boundary_date from the last successful pipeline run.
     If no successful run exists, returns None.
     """
     select_sql = f"""
-    SELECT watermark_value
+    SELECT watermark_value, boundary_date
     FROM {settings.pipeline_runs_table}
     WHERE pipeline_name = :pipeline_name
       AND status = 'success'
@@ -142,7 +145,7 @@ def get_last_successful_watermark(engine: Engine, pipeline_name: str):
         result = conn.execute(
             text(select_sql),
             {"pipeline_name": pipeline_name},
-        ).scalar()
+        ).fetchone()
 
     if result is not None:
         logger.info(
@@ -152,8 +155,13 @@ def get_last_successful_watermark(engine: Engine, pipeline_name: str):
         logger.info(
             f"No successful watermark found for pipeline '{pipeline_name}'."
         )
+    if result is None:
+        return None, None
 
-    return result
+    last_watermark = result.watermark_value
+    boundary_date = result.boundary_date   
+
+    return last_watermark, boundary_date
 
 
 def get_last_successful_historical_hash(engine, pipeline_name: str) -> str | None:

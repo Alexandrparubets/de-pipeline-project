@@ -4,12 +4,13 @@ import hashlib
 
 from pipeline.logger_config import get_logger
 from pipeline.metadata import get_last_successful_historical_hash
+from pipeline.setup_db import truncate_dwh_table
 
 
 logger = get_logger("pipeline.transform")
 
 
-def load_raw_to_dataframe(engine, pipeline_name, raw_file_path: Path, last_watermark=None, ) -> pd.DataFrame:
+def load_raw_to_dataframe(engine, pipeline_name, raw_file_path: Path, last_watermark=None, boundary_date=None ) -> pd.DataFrame:
     """
     Reads RAW Excel file into pandas DataFrame,
     validates that it is not empty,
@@ -32,16 +33,17 @@ def load_raw_to_dataframe(engine, pipeline_name, raw_file_path: Path, last_water
     df.columns = normalize_column_names(df.columns)
     
     last_historical_hash = get_last_successful_historical_hash(engine, pipeline_name)
-    historical_hash = calculate_historical_hash(df, last_watermark)
+    historical_hash, new_boundary_date = calculate_historical_hash(df, boundary_date)
 
-    if (
-        last_historical_hash is not None
-        and historical_hash is not None
+    if (historical_hash is not None
         and historical_hash != last_historical_hash
     ):
+        truncate_dwh_table(engine)
+        last_watermark = None
         logger.warning(
             "Historical source data has changed compared to the last successful run."
         )
+    
 
     logger.info(f"Initial rows loaded from RAW: {len(df)}")
 
@@ -53,7 +55,7 @@ def load_raw_to_dataframe(engine, pipeline_name, raw_file_path: Path, last_water
         logger.info(f"Rows after watermark filter: {len(df)}")
         if df.empty:
             logger.info("No new rows found after watermark filter.")
-            return df, historical_hash
+            return df, historical_hash, new_boundary_date
 
     
 
@@ -63,7 +65,7 @@ def load_raw_to_dataframe(engine, pipeline_name, raw_file_path: Path, last_water
     )
     logger.info(f"Normalized columns: {list(df.columns)}")
 
-    return df, historical_hash
+    return df, historical_hash, new_boundary_date
 
 
 def normalize_column_names(columns) -> list[str]:
@@ -255,18 +257,20 @@ def remove_duplicates_by_row_hash(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def calculate_historical_hash(df: pd.DataFrame, last_watermark) -> str | None:
+def calculate_historical_hash(df: pd.DataFrame, boundary_date) -> str | None:
     """
     Calculate hash for historical part of source data
     (rows with InvoiceDate < last_watermark).
     """
-    if last_watermark is None:
-        boundary_date = df["invoicedate"].max()
-    else:
-        boundary_date = last_watermark
 
+    logger.info(f"historical_hash -> boundary_date: {boundary_date} max data: {df["invoicedate"].max()}")
+    if boundary_date is None:
+        boundary_date = df["invoicedate"].max()
+    
     historical_df = df[df["invoicedate"] < boundary_date].copy()
-    logger.info(f"historical_hash -> last_watermark: {last_watermark} max data: {df["invoicedate"].max()}")
+    
+    new_boundary_date = df["invoicedate"].max()
+    logger.info(f"historical_hash -> new boundary_date: {new_boundary_date}")
 
     if historical_df.empty:
         return None
@@ -278,4 +282,4 @@ def calculate_historical_hash(df: pd.DataFrame, last_watermark) -> str | None:
     payload = historical_df.to_csv(index=False)
     historical_hash = hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
-    return historical_hash
+    return historical_hash, new_boundary_date
