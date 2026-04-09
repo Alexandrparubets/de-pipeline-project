@@ -68,30 +68,31 @@ def insert_all_rows_to_stg(engine, raw_stg_table: str, stg_table: str) -> int:
         row_hash
     )
     SELECT 
-        invoiceno,
-        stockcode,
-        description,
-        quantity,
-        invoicedate,
-        unitprice,
-        customerid,
-        country,
+        COALESCE(UPPER(TRIM(REGEXP_REPLACE(invoiceno, '\s+', ' ', 'g'))),'') AS invoiceno,
+        COALESCE(UPPER(TRIM(REGEXP_REPLACE(stockcode, '\s+', ' ', 'g'))),'') AS stockcode,
+        COALESCE(UPPER(TRIM(REGEXP_REPLACE(description, '\s+', ' ', 'g'))),'') AS description,
+        COALESCE((quantity::INTEGER),0) AS quantity,
+        invoicedate::TIMESTAMP AS invoicedate,
+        COALESCE((unitprice::NUMERIC),0) AS unitprice,
+        customerid::INTEGER AS customerid,
+        COALESCE(UPPER(TRIM(REGEXP_REPLACE(country, '\s+', ' ', 'g'))),'') AS country,
         quantity * unitprice AS revenue,
         MD5(
-            COALESCE(invoiceno, '') ||
-            COALESCE(stockcode, '') ||
-            COALESCE(description, '') ||
+            COALESCE(UPPER(TRIM(REGEXP_REPLACE(invoiceno, '\s+', ' ', 'g'))), '') ||
+            COALESCE(UPPER(TRIM(REGEXP_REPLACE(stockcode, '\s+', ' ', 'g'))), '') ||
+            COALESCE(UPPER(TRIM(REGEXP_REPLACE(description, '\s+', ' ', 'g'))), '') ||
             COALESCE(quantity::text, '') ||
-            COALESCE(invoicedate::text, '') ||
+            COALESCE(TO_CHAR(invoicedate, 'YYYY-MM-DD HH24:MI'), '') ||
             COALESCE(unitprice::text, '') ||
             COALESCE(customerid::text, '') ||
-            COALESCE(country, '')
+            COALESCE(UPPER(TRIM(REGEXP_REPLACE(country, '\s+', ' ', 'g'))), '')
         ) AS row_hash
     FROM {raw_stg_table}
         WHERE invoiceno NOT LIKE 'C%'
         AND quantity > 0
         AND customerid IS NOT NULL
         AND quantity * unitprice > 0
+        ON CONFLICT (row_hash) DO NOTHING
     RETURNING 1
     ;
 """

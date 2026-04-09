@@ -36,7 +36,8 @@ def create_stg_table(engine: Engine) -> None:
 
     create_sql = f"""
     CREATE TABLE IF NOT EXISTS {table_name} (
-        {columns_sql}
+        {columns_sql},
+        CONSTRAINT uq_row_hash UNIQUE (row_hash)
     );
     """
 
