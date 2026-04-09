@@ -10,7 +10,7 @@ from pipeline.setup_db import truncate_dwh_table
 logger = get_logger("pipeline.transform")
 
 
-def load_raw_to_dataframe(engine, pipeline_name, raw_file_path: Path, last_watermark=None, boundary_date=None ) -> pd.DataFrame:
+def load_raw_to_dataframe(engine, pipeline_name, raw_file_path: Path,  boundary_date=None ) -> pd.DataFrame:
     """
     Reads RAW Excel file into pandas DataFrame,
     validates that it is not empty,
@@ -49,15 +49,15 @@ def load_raw_to_dataframe(engine, pipeline_name, raw_file_path: Path, last_water
    
     logger.info(f"Initial rows loaded from RAW: {len(df)}")
 
-    if last_watermark is None:
-        logger.info("No watermark found. Full RAW file will be loaded.")
-    else:
-        logger.info(f"Applying watermark filter: InvoiceDate >= {last_watermark}")
-        df = df[df["invoicedate"] >= last_watermark].copy()
-        logger.info(f"Rows after watermark filter: {len(df)}")
-        if df.empty:
-            logger.info("No new rows found after watermark filter.")
-            return df, new_historical_hash, new_boundary_date
+    # if last_watermark is None:
+    #     logger.info("No watermark found. Full RAW file will be loaded.")
+    # else:
+    #     logger.info(f"Applying watermark filter: InvoiceDate >= {last_watermark}")
+    #     df = df[df["invoicedate"] >= last_watermark].copy()
+    #     logger.info(f"Rows after watermark filter: {len(df)}")
+    #     if df.empty:
+    #         logger.info("No new rows found after watermark filter.")
+    #         return df, new_historical_hash, new_boundary_date
 
     
 

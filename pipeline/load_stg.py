@@ -6,7 +6,7 @@ from pipeline.logger_config import get_logger
 logger = get_logger(__name__)
 
 
-def load_raw_stg_to_stg(engine) -> dict:
+def load_raw_stg_to_stg(engine, last_watermark) -> dict:
     """
     Load data from RAW STG to STG.
 
@@ -25,7 +25,7 @@ def load_raw_stg_to_stg(engine) -> dict:
 
     try:
         
-        inserted_rows = insert_all_rows_to_stg(engine, raw_stg_table, stg_table)
+        inserted_rows = insert_all_rows_to_stg(engine, last_watermark, raw_stg_table, stg_table)
         
 
         logger.info(
@@ -42,7 +42,7 @@ def load_raw_stg_to_stg(engine) -> dict:
 
 
 
-def insert_all_rows_to_stg(engine, raw_stg_table: str, stg_table: str) -> int:
+def insert_all_rows_to_stg(engine, last_watermark, raw_stg_table: str, stg_table: str) -> int:
     """
     Insert all rows from RAW STG into STG, skipping duplicates.
 
@@ -92,13 +92,17 @@ def insert_all_rows_to_stg(engine, raw_stg_table: str, stg_table: str) -> int:
         AND quantity > 0
         AND customerid IS NOT NULL
         AND quantity * unitprice > 0
+        AND (
+        :last_watermark IS NULL
+        OR invoicedate >= :last_watermark
+         )
         ON CONFLICT (row_hash) DO NOTHING
     RETURNING 1
     ;
 """
 
     with engine.begin() as conn:
-        result = conn.execute(text(insert_sql))
+        result = conn.execute(text(insert_sql), {"last_watermark": last_watermark})
         inserted_rows = len(result.fetchall())
         raw_count = conn.execute(
         text(f"SELECT COUNT(*) FROM {raw_stg_table}")
