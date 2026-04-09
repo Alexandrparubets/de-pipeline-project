@@ -9,7 +9,8 @@ from pipeline.metadata import (start_pipeline_run,
 from pipeline.extract import get_source_file_path
 from pipeline.raw import create_raw_copy
 from pipeline.transform import load_raw_to_dataframe, clean_dataframe, calculate_historical_hash
-from pipeline.load_stg import load_to_stg, align_to_stg_columns
+from pipeline.load_raw_stg import load_to_raw_stg, align_to_raw_stg_columns
+from pipeline.load_stg import load_raw_stg_to_stg
 from pipeline.quality import run_quality_checks
 from pipeline.load_dwh import load_stg_to_dwh
 from pipeline.load_mart import load_data_mart
@@ -51,8 +52,9 @@ def run_pipeline() -> None:
             return
 
         df, watermark_value = clean_dataframe(df)
-        df = align_to_stg_columns(df)
-        rows_in_stg = load_to_stg(df, engine)
+        df = align_to_raw_stg_columns(df)
+        rows_in_raw_stg = load_to_raw_stg(df, engine)
+        rows_in_stg = load_raw_stg_to_stg(engine)
         run_quality_checks(engine)
         dwh_stats = load_stg_to_dwh(engine)
         attempted_rows = dwh_stats["attempted_rows"]
@@ -64,7 +66,7 @@ def run_pipeline() -> None:
         finish_pipeline_run_success(
             engine=engine,
             run_id=run_id,
-            rows_in_stg=rows_in_stg,
+            rows_in_stg=rows_in_raw_stg,
             watermark_value=watermark_value,
             boundary_date = new_boundary_date,
             historical_hash=new_historical_hash,

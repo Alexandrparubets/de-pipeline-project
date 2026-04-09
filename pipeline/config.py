@@ -31,6 +31,17 @@ class Settings:
     "revenue": "NUMERIC",
     "row_hash": "TEXT",
 })
+    raw_stg_table: str = os.getenv("RAW_STG_TABLE", "raw_stg_orders")
+    raw_stg_schema: dict[str, str] = field(default_factory=lambda: {
+    "invoiceno": "TEXT",
+    "stockcode": "TEXT",
+    "description": "TEXT",
+    "quantity": "INTEGER",
+    "invoicedate": "TIMESTAMP",
+    "unitprice": "NUMERIC",
+    "customerid": "INTEGER",
+    "country": "TEXT",
+})
     dwh_table: str = os.getenv("DWH_TABLE", "orders_clean")
     mart_table: str = os.getenv("MART_TABLE", "sales_daily")
     pipeline_runs_table: str = os.getenv("PIPELINE_RUNS_TABLE", "pipeline_runs")

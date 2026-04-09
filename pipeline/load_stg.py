@@ -1,6 +1,4 @@
-# pipeline/load_stg.py
-
-import pandas as pd
+from sqlalchemy import text
 
 from pipeline.config import settings
 from pipeline.logger_config import get_logger
@@ -8,75 +6,107 @@ from pipeline.logger_config import get_logger
 logger = get_logger(__name__)
 
 
-def load_to_stg(df: pd.DataFrame, engine) -> int:
+def load_raw_stg_to_stg(engine) -> dict:
     """
-    Load cleaned DataFrame into the staging (STG) table.
-
-    Args:
-        df (pd.DataFrame): Cleaned DataFrame from transform step.
-        engine: SQLAlchemy engine for database connection.
+    Load data from RAW STG to STG.
 
     Returns:
-        int: Number of rows successfully loaded into STG.
+        dict: Load statistics with inserted rows.
 
     Raises:
-        ValueError: If the DataFrame is empty.
-        Exception: If any error occurs during the load process.
+        Exception: If load to STG fails.
     """
-    if df.empty:
-        logger.error("STG load skipped: DataFrame is empty.")
-        raise ValueError("Cannot load empty DataFrame to STG")
+    raw_stg_table = settings.raw_stg_table
+    stg_table = settings.stg_table
 
     logger.info(
-        f"Starting STG load: table='{settings.stg_table}', rows={len(df)}"
+        f"Starting STG load: source='{raw_stg_table}', target='{stg_table}'"
     )
 
     try:
-        df.to_sql(
-            name=settings.stg_table,
-            con=engine,
-            if_exists="append",
-            index=False,
-            method="multi",
-            chunksize=settings.chunk_size,
-        )
-
-        loaded_rows = len(df)
+        
+        inserted_rows = insert_all_rows_to_stg(engine, raw_stg_table, stg_table)
+        
 
         logger.info(
-            f"STG load finished: table='{settings.stg_table}', loaded_rows={loaded_rows}"
+            f"STG load finished: inserted_rows={inserted_rows}, "
         )
 
-        return loaded_rows
+        return {           
+            "inserted_rows": inserted_rows,
+        }
 
     except Exception as e:
-        logger.exception(
-            f"STG load failed: table='{settings.stg_table}', error={e}"
-        )
+        logger.exception(f"STG load failed: {e}")
         raise
 
 
-def align_to_stg_columns(df: pd.DataFrame) -> pd.DataFrame:
+
+def insert_all_rows_to_stg(engine, raw_stg_table: str, stg_table: str) -> int:
     """
-    Align DataFrame columns to STG schema.
+    Insert all rows from RAW STG into STG, skipping duplicates.
 
-    - missing STG columns are added with None
-    - extra DataFrame columns are ignored
-    - final column order matches STG schema
+    Returns:
+        int: Number of rows actually inserted.
     """
-    stg_columns = list(settings.stg_schema.keys())
+    raw_columns = list(settings.raw_stg_schema.keys())
+    raw_columns_sql = ", ".join(raw_columns)
+    columns = list(settings.stg_schema.keys())
+    columns_sql = ", ".join(columns)
 
-    missing_cols = [col for col in stg_columns if col not in df.columns]
-    extra_cols = [col for col in df.columns if col not in stg_columns]
+    insert_sql = f"""
+    INSERT INTO {stg_table} (
+        invoiceno,
+        stockcode,
+        description,
+        quantity,
+        invoicedate,
+        unitprice,
+        customerid,
+        country,
+        revenue,
+        row_hash
+    )
+    SELECT 
+        invoiceno,
+        stockcode,
+        description,
+        quantity,
+        invoicedate,
+        unitprice,
+        customerid,
+        country,
+        quantity * unitprice AS revenue,
+        MD5(
+            COALESCE(invoiceno, '') ||
+            COALESCE(stockcode, '') ||
+            COALESCE(description, '') ||
+            COALESCE(quantity::text, '') ||
+            COALESCE(invoicedate::text, '') ||
+            COALESCE(unitprice::text, '') ||
+            COALESCE(customerid::text, '') ||
+            COALESCE(country, '')
+        ) AS row_hash
+    FROM {raw_stg_table}
+        WHERE invoiceno NOT LIKE 'C%'
+        AND quantity > 0
+        AND customerid IS NOT NULL
+        AND quantity * unitprice > 0
+    RETURNING 1
+    ;
+"""
 
-    if missing_cols:
-        logger.warning(f"Missing columns in DataFrame. They will be filled with NULLs: {missing_cols}")
-        for col in missing_cols:
-            df[col] = None
+    with engine.begin() as conn:
+        result = conn.execute(text(insert_sql))
+        inserted_rows = len(result.fetchall())
+        raw_count = conn.execute(
+        text(f"SELECT COUNT(*) FROM {raw_stg_table}")
+        ).scalar()
 
-    if extra_cols:
-        logger.warning(f"Extra columns in DataFrame. They will be skipped: {extra_cols}")
+    filtered_out = raw_count - inserted_rows
 
-    df = df[stg_columns].copy()
+    logger.info(
+    f"STG transform: raw_rows={raw_count}, inserted={inserted_rows}, filtered_out={filtered_out}"
+)
 
-    return df
+    return inserted_rows

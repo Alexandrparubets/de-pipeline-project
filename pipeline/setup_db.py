@@ -16,6 +16,8 @@ def setup_database(engine: Engine) -> None:
     """
     drop_stg_table(engine)
     create_stg_table(engine)
+    drop_raw_stg_table(engine)
+    create_raw_stg_table(engine)
     create_dwh_table(engine)
     create_mart_table(engine)
     create_pipeline_runs_table(engine)
@@ -39,6 +41,33 @@ def create_stg_table(engine: Engine) -> None:
     """
 
     logger.debug(f"STG CREATE SQL:\n{create_sql}")
+
+    with engine.begin() as conn:
+        conn.execute(text(create_sql))
+
+    logger.info(
+        f"Staging ready: table '{table_name}' is created (or already exists)."
+    )
+
+
+def create_raw_stg_table(engine: Engine) -> None:
+    table_name = settings.raw_stg_table
+    raw_stg_schema = settings.raw_stg_schema
+
+    if not raw_stg_schema:
+        raise ValueError("RAW STG schema is empty")
+
+    columns_sql = ",\n        ".join(
+        f"{column} {data_type}" for column, data_type in raw_stg_schema.items()
+    )
+
+    create_sql = f"""
+    CREATE TABLE IF NOT EXISTS {table_name} (
+        {columns_sql}
+    );
+    """
+
+    logger.debug(f"RAW STG CREATE SQL:\n{create_sql}")
 
     with engine.begin() as conn:
         conn.execute(text(create_sql))
@@ -161,6 +190,17 @@ def create_pipeline_runs_table(engine: Engine) -> None:
 
 def drop_stg_table(engine: Engine) -> None:
     table_name = settings.stg_table
+
+    drop_sql = f"DROP TABLE IF EXISTS {table_name};"
+
+    with engine.begin() as conn:
+        conn.execute(text(drop_sql))
+
+    logger.info(f"Staging dropped: table '{table_name}' was removed.")
+
+
+def drop_raw_stg_table(engine: Engine) -> None:
+    table_name = settings.raw_stg_table
 
     drop_sql = f"DROP TABLE IF EXISTS {table_name};"
 

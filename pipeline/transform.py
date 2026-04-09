@@ -96,20 +96,20 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     initial_rows = len(df)
     logger.info(f"Initial rows before cleaning: {initial_rows}")
 
-    df = remove_cancelled_orders(df)
-    df = remove_non_positive_quantity(df)
-    df = drop_missing_customer_id(df)
-    df = convert_data_types(df)
-    df = normalize_text_columns(df)
-    df = create_revenue_column(df)
-    df = remove_non_positive_revenue(df)
+    #df = remove_cancelled_orders(df)
+    #df = remove_non_positive_quantity(df)
+    #df = drop_missing_customer_id(df)
+    #df = convert_data_types(df)
+    #df = normalize_text_columns(df)
+    #df = create_revenue_column(df)
+    #df = remove_non_positive_revenue(df)
 
     if df.empty:
         logger.error("DataFrame became empty after cleaning")
         raise ValueError("DataFrame became empty after cleaning")
 
-    df = create_row_hash(df)
-    df = remove_duplicates_by_row_hash(df)
+    #df = create_row_hash(df)
+    #df = remove_duplicates_by_row_hash(df)
 
     final_rows = len(df)
     logger.info(
