@@ -32,7 +32,7 @@ def create_raw_copy(source_file: Path, pipeline_name: str) -> tuple[Path, str]:
 
         if latest_raw_hash == current_hash:
             logger.info(
-                f"Source unchanged. Using existing RAW: '{latest_raw_file}'"
+                f"♻️ Source unchanged. Using existing RAW: {latest_raw_file}\n"
             )
             return latest_raw_file, current_hash
 
@@ -54,10 +54,7 @@ def create_raw_copy(source_file: Path, pipeline_name: str) -> tuple[Path, str]:
 
     file_hash = current_hash
 
-    logger.info(
-        f"RAW copy created: source='{source_file}' -> raw='{raw_file_path}', "
-        f"file_hash='{file_hash}'"
-    )
+    logger.info(f"📥 RAW copy created: {raw_file_path}\n")
 
     return raw_file_path, file_hash
 

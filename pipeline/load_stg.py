@@ -10,31 +10,30 @@ def load_raw_stg_to_stg(engine, last_watermark) -> dict:
     """
     Load data from RAW STG to STG.
 
-    Returns:
-        dict: Load statistics with inserted rows.
-
-    Raises:
-        Exception: If load to STG fails.
     """
     raw_stg_table = settings.raw_stg_table
     stg_table = settings.stg_table
 
-    logger.info(
-        f"Starting STG load: source='{raw_stg_table}', target='{stg_table}'"
-    )
+    logger.info(f"🚀 Starting STG load: source='{raw_stg_table}', target='{stg_table}'")
+    logger.info(f"📅 Using watermark: {last_watermark}")
 
     try:
         
-        inserted_rows = insert_all_rows_to_stg(engine, last_watermark, raw_stg_table, stg_table)
+        inserted_rows, raw_count = insert_all_rows_to_stg(engine, last_watermark, raw_stg_table, stg_table)
+    
+        logger.info(f"📊 Rows in RAW_STG: {raw_count}")
         
+        rows_after_watermark = get_rows_after_watermark(engine, last_watermark)
 
-        logger.info(
-            f"STG load finished: inserted_rows={inserted_rows}, "
-        )
+        logger.info(f"📅 Rows after watermark: {rows_after_watermark}")
 
-        return {           
-            "inserted_rows": inserted_rows,
-        }
+        skipped = rows_after_watermark - inserted_rows
+
+        logger.info(f"🗑️ Filtered out rows: {skipped}")
+
+        logger.info(f"🧹 Cleaned rows: {inserted_rows}")
+
+        return inserted_rows
 
     except Exception as e:
         logger.exception(f"STG load failed: {e}")
@@ -46,8 +45,6 @@ def insert_all_rows_to_stg(engine, last_watermark, raw_stg_table: str, stg_table
     """
     Insert all rows from RAW STG into STG, skipping duplicates.
 
-    Returns:
-        int: Number of rows actually inserted.
     """
     raw_columns = list(settings.raw_stg_schema.keys())
     raw_columns_sql = ", ".join(raw_columns)
@@ -101,22 +98,15 @@ def insert_all_rows_to_stg(engine, last_watermark, raw_stg_table: str, stg_table
     ;
     """
 
-    logger.info(f"Using watermark: {last_watermark}")
-
     with engine.begin() as conn:
         result = conn.execute(text(insert_sql), {"last_watermark": last_watermark})
         inserted_rows = len(result.fetchall())
+
         raw_count = conn.execute(
         text(f"SELECT COUNT(*) FROM {raw_stg_table}")
         ).scalar()
-
-    filtered_out = raw_count - inserted_rows
-
-    logger.info(
-    f"STG transform: raw_rows={raw_count}, inserted={inserted_rows}, filtered_out={filtered_out}"
-)
-
-    return inserted_rows
+      
+    return inserted_rows, raw_count
 
 
 def get_last_watermark_value(engine):
@@ -132,8 +122,36 @@ def get_last_watermark_value(engine):
         result = conn.execute(text(query))
         watermark = result.scalar()
 
-    logger.info(f"NEW Watermark:{watermark}")
+    logger.info(f"🆕 New watermark: {watermark}\n")
 
     return watermark
+
+
+def get_rows_after_watermark(engine, last_watermark):
+
+    raw_stg_table = settings.raw_stg_table
+
+    if last_watermark is None:
+        query = f"SELECT COUNT(*) FROM {raw_stg_table};"
+        params = {}
+    else:
+        query = f"""
+        SELECT COUNT(*)
+        FROM {raw_stg_table}
+        WHERE invoicedate >= :last_watermark;
+    """
+        params = {"last_watermark": last_watermark}
+
+    with engine.begin() as conn:
+        result = conn.execute(
+            text(query),
+            params,
+        )
+        rows_after_watermark = result.scalar()
+    
+    return rows_after_watermark
+
+
+
 
 

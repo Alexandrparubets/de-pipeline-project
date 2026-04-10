@@ -20,7 +20,7 @@ def load_stg_to_dwh(engine) -> dict:
     dwh_table = settings.dwh_table
 
     logger.info(
-        f"Starting DWH load: source='{stg_table}', target='{dwh_table}'"
+        f"🚀 Starting DWH load: source='{stg_table}', target='{dwh_table}'"
     )
 
     try:
@@ -29,8 +29,8 @@ def load_stg_to_dwh(engine) -> dict:
         skipped_rows = attempted_rows - inserted_rows
 
         logger.info(
-            f"DWH load finished: attempted={attempted_rows}, "
-            f"inserted={inserted_rows}, skipped={skipped_rows}"
+            f"✅ DWH load finished: attempted={attempted_rows}, "
+            f"inserted={inserted_rows}, skipped={skipped_rows}\n"
         )
 
         return {
@@ -56,7 +56,7 @@ def get_stg_row_count(engine, table_name: str) -> int:
             text(f"SELECT COUNT(*) FROM {table_name}")
         ).scalar()
 
-    logger.info(f"STG row count: {result}")
+    logger.info(f"📊 STG row count: {result}")
 
     return result
 
@@ -83,6 +83,6 @@ def insert_new_rows_to_dwh(engine, stg_table: str, dwh_table: str) -> int:
         result = conn.execute(text(insert_sql))
         inserted_rows = len(result.fetchall())
 
-    logger.info(f"Inserted rows into DWH: {inserted_rows}")
+    logger.info(f"📦 Inserted rows into DWH: {inserted_rows}")
 
     return inserted_rows

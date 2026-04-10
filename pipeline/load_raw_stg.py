@@ -28,7 +28,7 @@ def load_to_raw_stg(df: pd.DataFrame, engine) -> int:
         raise ValueError("Cannot load empty DataFrame to RAW STG")
 
     logger.info(
-        f"Starting RAW STG load: table='{settings.raw_stg_table}', rows={len(df)}"
+        f"📥 Starting RAW STG load: table='{settings.raw_stg_table}', rows={len(df)}"
     )
 
     try:
@@ -44,7 +44,7 @@ def load_to_raw_stg(df: pd.DataFrame, engine) -> int:
         loaded_rows = len(df)
 
         logger.info(
-            f"RAW STG load finished: table='{settings.raw_stg_table}', loaded_rows={loaded_rows}"
+            f"✅ RAW STG load finished: table='{settings.raw_stg_table}', loaded_rows={loaded_rows}\n"
         )
 
         return loaded_rows
@@ -70,12 +70,15 @@ def align_to_raw_stg_columns(df: pd.DataFrame) -> pd.DataFrame:
     extra_cols = [col for col in df.columns if col not in raw_stg_columns]
 
     if missing_cols:
-        logger.warning(f"Missing columns in DataFrame. They will be filled with NULLs: {missing_cols}")
+        logger.warning(f"⚠️ Missing columns in DataFrame. They will be filled with NULLs: {missing_cols}")
         for col in missing_cols:
             df[col] = None
 
     if extra_cols:
-        logger.warning(f"Extra columns in DataFrame. They will be skipped: {extra_cols}")
+        logger.warning(f"⚠️ Extra columns in DataFrame. They will be skipped: {extra_cols}")
+
+    if not missing_cols and not extra_cols:
+        logger.info("✅ No extra or missing columns in DataFrame")
 
     df = df[raw_stg_columns].copy()
 

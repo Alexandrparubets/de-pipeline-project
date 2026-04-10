@@ -22,7 +22,7 @@ def get_engine() -> Engine:
     engine = create_engine(db_url)
 
     logger.info(
-        f"Connected to DB: {settings.db_host}:{settings.db_port}/{settings.db_name}"
+        f"🔌 Connected to DB: {settings.db_host}:{settings.db_port}/{settings.db_name}"
     )
 
     return engine
@@ -36,7 +36,7 @@ def test_connection(engine: Engine) -> None:
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
-        logger.info("✅ Database connection successful")
+        logger.info("✅ Database connection successful\n")
     except Exception as e:
         logger.exception(f"❌ Database connection failed: {e}")
         raise

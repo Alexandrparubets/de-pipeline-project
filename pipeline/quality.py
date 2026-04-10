@@ -24,7 +24,7 @@ def run_quality_checks(engine) -> bool:
     table_name = settings.stg_table
     errors = []
 
-    logger.info(f"Starting quality checks for STG table '{table_name}'")
+    logger.info(f"🚀 Starting quality checks for STG table '{table_name}'")
 
     errors.extend(check_required_fields(engine, table_name))
     errors.extend(check_duplicates(engine, table_name))
@@ -37,7 +37,7 @@ def run_quality_checks(engine) -> bool:
             logger.error(f"QUALITY ERROR: {error}")
         raise ValueError("STG quality checks failed")
 
-    logger.info("All STG quality checks passed successfully.")
+    logger.info("✅ All STG quality checks passed successfully.\n")
     return True
 
 
@@ -78,7 +78,7 @@ def check_required_fields(engine, table_name: str) -> list[str]:
                     f"Check NULLs FAILED for '{column}': {result} rows"
                 )
             else:
-                logger.info(f"Check NULLs OK for '{column}'")
+                logger.info(f"✅ Check NULLs OK for '{column}'")
 
     return errors
 
@@ -109,7 +109,7 @@ def check_duplicates(engine, table_name: str) -> list[str]:
             errors.append(f"Duplicate row_hash values found: {result}")
             logger.warning(f"Check duplicates FAILED: {result} duplicate groups")
         else:
-            logger.info("Check duplicates OK (no duplicates found)")
+            logger.info("✅ Check duplicates OK (no duplicates found)")
 
     return errors
 
@@ -143,6 +143,6 @@ def check_value_ranges(engine, table_name: str) -> list[str]:
                 errors.append(f"{description}: {result} rows")
                 logger.warning(f"Check FAILED: {description} ({result} rows)")
             else:
-                logger.info(f"Check OK: {description}")
+                logger.info(f"✅ Check OK: {description}")
 
     return errors

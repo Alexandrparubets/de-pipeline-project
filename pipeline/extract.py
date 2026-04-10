@@ -14,10 +14,10 @@ def get_source_file_path() -> Path:
     """
     source_path = Path(settings.source_file)
 
-    logger.info(f"Source configured: '{source_path}'")
+    logger.info(f"📂 Source configured: {source_path}")
 
     if not source_path.exists():
-        logger.error(f"Source file not found: '{source_path}'")
+        logger.error(f"Source file not found: {source_path}")
         raise FileNotFoundError(f"Source file not found: {source_path}")
 
     if not source_path.is_file():
@@ -31,6 +31,6 @@ def get_source_file_path() -> Path:
         logger.error(f"Source file is not readable: '{source_path}' | error: {e}")
         raise
 
-    logger.info(f"Source file is available for reading: '{source_path}'")
+    logger.info(f"✅ Source file is available for reading: {source_path}\n")
 
     return source_path
