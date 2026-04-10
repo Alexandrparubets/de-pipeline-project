@@ -5,15 +5,17 @@ from pipeline.metadata import (start_pipeline_run,
     finish_pipeline_run_success,
     finish_pipeline_run_failed,
     get_last_successful_watermark,
+    get_last_successful_historical_hash
     )
 from pipeline.extract import get_source_file_path
 from pipeline.raw import create_raw_copy
 from pipeline.transform import load_raw_to_dataframe, clean_dataframe, calculate_historical_hash
 from pipeline.load_raw_stg import load_to_raw_stg, align_to_raw_stg_columns
-from pipeline.load_stg import load_raw_stg_to_stg
+from pipeline.load_stg import load_raw_stg_to_stg, get_last_watermark_value
 from pipeline.quality import run_quality_checks
 from pipeline.load_dwh import load_stg_to_dwh
 from pipeline.load_mart import load_data_mart
+from pipeline.historical_hash import get_new_boundary_date, get_historical_hash, check_historical_hash
 
 
 logger = get_logger("pipeline.run")
@@ -32,9 +34,10 @@ def run_pipeline() -> None:
         run_id = start_pipeline_run(engine, pipeline_name)
         set_run_id(run_id)
         last_watermark, boundary_date = get_last_successful_watermark(engine, pipeline_name)
+        last_historical_hash = get_last_successful_historical_hash(engine, pipeline_name)
         source_file = get_source_file_path()
         raw_file_path, file_hash = create_raw_copy(source_file, pipeline_name)
-        df, new_historical_hash, new_boundary_date = load_raw_to_dataframe(engine, pipeline_name, raw_file_path,  boundary_date)
+        df = load_raw_to_dataframe(engine, pipeline_name, raw_file_path,  boundary_date)
 
        
 
@@ -51,10 +54,16 @@ def run_pipeline() -> None:
             )
             return
 
-        df, watermark_value = clean_dataframe(df)
+        #df, watermark_value = clean_dataframe(df)
         df = align_to_raw_stg_columns(df)
         rows_in_raw_stg = load_to_raw_stg(df, engine)
+        last_watermark = check_historical_hash(engine, last_historical_hash, boundary_date, last_watermark)
+
         rows_in_stg = load_raw_stg_to_stg(engine, last_watermark)
+        watermark_value = get_last_watermark_value(engine)
+        new_boundary_date = get_new_boundary_date(engine)
+        new_historical_hash = get_historical_hash(engine, new_boundary_date)
+
         run_quality_checks(engine)
         dwh_stats = load_stg_to_dwh(engine)
         attempted_rows = dwh_stats["attempted_rows"]

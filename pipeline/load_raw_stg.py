@@ -10,7 +10,7 @@ logger = get_logger(__name__)
 
 def load_to_raw_stg(df: pd.DataFrame, engine) -> int:
     """
-    Load cleaned DataFrame into the RAW staging (RAW_STG) table.
+    Load  DataFrame into the RAW staging (RAW_STG) table.
 
     Args:
         df (pd.DataFrame): Cleaned DataFrame from transform step.

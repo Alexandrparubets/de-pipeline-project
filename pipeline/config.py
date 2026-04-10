@@ -54,6 +54,7 @@ class Settings:
     raw_file_prefix: str = os.getenv("RAW_FILE_PREFIX", "online_retail")
 
     chunk_size: int = int(os.getenv("CHUNK_SIZE", 5000))
+    historical_period: str = os.getenv("HISTORICAL_PERIOD", "30 days")
 
     
 

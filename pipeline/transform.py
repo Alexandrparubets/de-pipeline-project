@@ -32,20 +32,20 @@ def load_raw_to_dataframe(engine, pipeline_name, raw_file_path: Path,  boundary_
     df["InvoiceDate"] = pd.to_datetime(df["InvoiceDate"])
     df.columns = normalize_column_names(df.columns)
     
-    last_historical_hash = get_last_successful_historical_hash(engine, pipeline_name)
-    logger.info(f"last_historical_hash: {last_historical_hash}")
-    historical_hash, new_boundary_date, new_historical_hash = calculate_historical_hash(df, boundary_date)
-    logger.info(f"historical_hash: {historical_hash}")
-    logger.info(f"new_historical_hash: {new_historical_hash}")
+    # last_historical_hash = get_last_successful_historical_hash(engine, pipeline_name)
+    # logger.info(f"last_historical_hash: {last_historical_hash}")
+    # historical_hash, new_boundary_date, new_historical_hash = calculate_historical_hash(df, boundary_date)
+    # logger.info(f"historical_hash: {historical_hash}")
+    # logger.info(f"new_historical_hash: {new_historical_hash}")
 
-    if (historical_hash is not None
-        and historical_hash != last_historical_hash
-    ):
-        truncate_dwh_table(engine)
-        last_watermark = None
-        logger.warning(
-            "Historical source data has changed compared to the last successful run."
-        )
+    # if (historical_hash is not None
+    #     and historical_hash != last_historical_hash
+    # ):
+    #     truncate_dwh_table(engine)
+    #     last_watermark = None
+    #     logger.warning(
+    #         "Historical source data has changed compared to the last successful run."
+    #     )
    
     logger.info(f"Initial rows loaded from RAW: {len(df)}")
 
@@ -67,7 +67,7 @@ def load_raw_to_dataframe(engine, pipeline_name, raw_file_path: Path,  boundary_
     )
     logger.info(f"Normalized columns: {list(df.columns)}")
 
-    return df, new_historical_hash, new_boundary_date
+    return df #, new_historical_hash, new_boundary_date
 
 
 def normalize_column_names(columns) -> list[str]:

@@ -68,24 +68,24 @@ def insert_all_rows_to_stg(engine, last_watermark, raw_stg_table: str, stg_table
         row_hash
     )
     SELECT 
-        COALESCE(UPPER(TRIM(REGEXP_REPLACE(invoiceno, '\s+', ' ', 'g'))),'') AS invoiceno,
-        COALESCE(UPPER(TRIM(REGEXP_REPLACE(stockcode, '\s+', ' ', 'g'))),'') AS stockcode,
-        COALESCE(UPPER(TRIM(REGEXP_REPLACE(description, '\s+', ' ', 'g'))),'') AS description,
+        COALESCE(UPPER(TRIM(REGEXP_REPLACE(invoiceno, '\\s+', ' ', 'g'))),'') AS invoiceno,
+        COALESCE(UPPER(TRIM(REGEXP_REPLACE(stockcode, '\\s+', ' ', 'g'))),'') AS stockcode,
+        COALESCE(UPPER(TRIM(REGEXP_REPLACE(description, '\\s+', ' ', 'g'))),'') AS description,
         COALESCE((quantity::INTEGER),0) AS quantity,
         invoicedate::TIMESTAMP AS invoicedate,
         COALESCE((unitprice::NUMERIC),0) AS unitprice,
         customerid::INTEGER AS customerid,
-        COALESCE(UPPER(TRIM(REGEXP_REPLACE(country, '\s+', ' ', 'g'))),'') AS country,
+        COALESCE(UPPER(TRIM(REGEXP_REPLACE(country, '\\s+', ' ', 'g'))),'') AS country,
         quantity * unitprice AS revenue,
         MD5(
-            COALESCE(UPPER(TRIM(REGEXP_REPLACE(invoiceno, '\s+', ' ', 'g'))), '') ||
-            COALESCE(UPPER(TRIM(REGEXP_REPLACE(stockcode, '\s+', ' ', 'g'))), '') ||
-            COALESCE(UPPER(TRIM(REGEXP_REPLACE(description, '\s+', ' ', 'g'))), '') ||
+            COALESCE(UPPER(TRIM(REGEXP_REPLACE(invoiceno, '\\s+', ' ', 'g'))), '') ||
+            COALESCE(UPPER(TRIM(REGEXP_REPLACE(stockcode, '\\s+', ' ', 'g'))), '') ||
+            COALESCE(UPPER(TRIM(REGEXP_REPLACE(description, '\\s+', ' ', 'g'))), '') ||
             COALESCE(quantity::text, '') ||
             COALESCE(TO_CHAR(invoicedate, 'YYYY-MM-DD HH24:MI'), '') ||
             COALESCE(unitprice::text, '') ||
             COALESCE(customerid::text, '') ||
-            COALESCE(UPPER(TRIM(REGEXP_REPLACE(country, '\s+', ' ', 'g'))), '')
+            COALESCE(UPPER(TRIM(REGEXP_REPLACE(country, '\\s+', ' ', 'g'))), '')
         ) AS row_hash
     FROM {raw_stg_table}
         WHERE invoiceno NOT LIKE 'C%'
@@ -99,7 +99,9 @@ def insert_all_rows_to_stg(engine, last_watermark, raw_stg_table: str, stg_table
         ON CONFLICT (row_hash) DO NOTHING
     RETURNING 1
     ;
-"""
+    """
+
+    logger.info(f"Using watermark: {last_watermark}")
 
     with engine.begin() as conn:
         result = conn.execute(text(insert_sql), {"last_watermark": last_watermark})
@@ -115,3 +117,23 @@ def insert_all_rows_to_stg(engine, last_watermark, raw_stg_table: str, stg_table
 )
 
     return inserted_rows
+
+
+def get_last_watermark_value(engine):
+
+    stg_table = settings.stg_table
+
+    query = f"""
+        SELECT MAX(invoicedate)
+        FROM {stg_table};
+    """
+
+    with engine.begin() as conn:
+        result = conn.execute(text(query))
+        watermark = result.scalar()
+
+    logger.info(f"NEW Watermark:{watermark}")
+
+    return watermark
+
+
