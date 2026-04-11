@@ -39,9 +39,9 @@ def start_pipeline_run(engine: Engine, pipeline_name: str) -> int:
         ).scalar()
 
     logger.info(
-        f"🚀Pipeline run started: Pipeline: {pipeline_name}"
+        f"🚀 Pipeline run started: Pipeline: {pipeline_name}"
     )
-    logger.info(f"🆔New id = {run_id}")
+    logger.info(f"🆔 New id = {run_id}")
 
     return run_id
 

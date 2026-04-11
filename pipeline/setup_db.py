@@ -47,7 +47,7 @@ def create_stg_table(engine: Engine) -> None:
         conn.execute(text(create_sql))
 
     logger.info(
-        f"🟢Staging ready: table '{table_name}' is created (or already exists)."
+        f"🟢 Staging ready: table '{table_name}' is created (or already exists)."
     )
 
 
@@ -74,7 +74,7 @@ def create_raw_stg_table(engine: Engine) -> None:
         conn.execute(text(create_sql))
 
     logger.info(
-        f"🟢Staging ready: table '{table_name}' is created (or already exists)."
+        f"🟢 Staging ready: table '{table_name}' is created (or already exists)."
     )
 
 
@@ -92,7 +92,7 @@ def truncate_dwh_table(engine: Engine) -> None:
             conn.execute(text(truncate_sql))
 
         logger.warning(
-            f"🧹DWH table '{table_name}' truncated due to historical data change."
+            f"🧹 DWH table '{table_name}' truncated due to historical data change."
         )
 
     except Exception as e:
@@ -138,10 +138,10 @@ def create_dwh_table(engine: Engine) -> None:
         conn.execute(text(add_unique_constraint_sql))
 
     logger.info(
-        f"📦Warehouse ready: table '{settings.dwh_table}' is created (or already exists)."
+        f"📦 Warehouse ready: table '{settings.dwh_table}' is created (or already exists)."
     )
     logger.info(
-        f"🔐Constraint applied: UNIQUE(row_hash) on '{settings.dwh_table}'."
+        f"🔐 Constraint applied: UNIQUE(row_hash) on '{settings.dwh_table}'."
     )
 
 
@@ -159,7 +159,7 @@ def create_mart_table(engine: Engine) -> None:
         conn.execute(text(create_table_sql))
 
     logger.info(
-        f"📊Mart ready: table '{settings.mart_table}' is created (or already exists)."
+        f"📊 Mart ready: table '{settings.mart_table}' is created (or already exists)."
     )
 
 
@@ -185,7 +185,7 @@ def create_pipeline_runs_table(engine: Engine) -> None:
         conn.execute(text(create_table_sql))
 
     logger.info(
-        f"🧾Metadata ready: table '{settings.pipeline_runs_table}' is created (or already exists).\n"
+        f"🧾 Metadata ready: table '{settings.pipeline_runs_table}' is created (or already exists).\n"
     )
 
 
@@ -208,4 +208,4 @@ def drop_raw_stg_table(engine: Engine) -> None:
     with engine.begin() as conn:
         conn.execute(text(drop_sql))
 
-    logger.info(f"🧹Staging dropped: table '{table_name}' was removed.")
+    logger.info(f"🧹 Staging dropped: table '{table_name}' was removed.")

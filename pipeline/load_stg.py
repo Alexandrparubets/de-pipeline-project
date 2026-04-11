@@ -24,14 +24,15 @@ def load_raw_stg_to_stg(engine, last_watermark) -> dict:
         logger.info(f"📊 Rows in RAW_STG: {raw_count}")
         
         rows_after_watermark = get_rows_after_watermark(engine, last_watermark)
+        filtered_out=raw_count - rows_after_watermark
 
-        logger.info(f"📅 Rows after watermark: {rows_after_watermark}")
+        logger.info(f"📅 Rows after watermark: {rows_after_watermark}, filtered out: {filtered_out}")
 
         skipped = rows_after_watermark - inserted_rows
 
-        logger.info(f"🗑️ Filtered out rows: {skipped}")
+        logger.info(f"🗑️ Business filters applied: {skipped}")
 
-        logger.info(f"🧹 Cleaned rows: {inserted_rows}")
+        logger.info(f"📦 Rows ready for DWH load: {inserted_rows}")
 
         return inserted_rows
 
