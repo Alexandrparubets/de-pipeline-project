@@ -21,6 +21,7 @@ def setup_database(engine: Engine) -> None:
     create_dwh_table(engine)
     create_mart_table(engine)
     create_pipeline_runs_table(engine)
+    create_ml_table(engine)
 
 
 def create_stg_table(engine: Engine) -> None:
@@ -163,6 +164,28 @@ def create_mart_table(engine: Engine) -> None:
     )
 
 
+def create_ml_table(engine: Engine) -> None:
+    create_table_sql = f"""
+    CREATE TABLE IF NOT EXISTS {settings.ml_table} (
+        id SERIAL PRIMARY KEY,
+        customerid INTEGER NOT NULL,
+        orders_count INTEGER NOT NULL,
+        total_spent NUMERIC(14, 2) NOT NULL,
+        avg_order NUMERIC(14, 2) NOT NULL,
+        unique_products INTEGER NOT NULL,
+        active_days INTEGER NOT NULL,
+        target INTEGER NOT NULL
+    );
+    """
+
+    with engine.begin() as conn:
+        conn.execute(text(create_table_sql))
+
+    logger.info(
+        f"📊 ML table ready: table '{settings.ml_table}' is created (or already exists).\n"
+    )    
+
+
 def create_pipeline_runs_table(engine: Engine) -> None:
     create_table_sql = f"""
     CREATE TABLE IF NOT EXISTS {settings.pipeline_runs_table} (
@@ -185,7 +208,7 @@ def create_pipeline_runs_table(engine: Engine) -> None:
         conn.execute(text(create_table_sql))
 
     logger.info(
-        f"🧾 Metadata ready: table '{settings.pipeline_runs_table}' is created (or already exists).\n"
+        f"🧾 Metadata ready: table '{settings.pipeline_runs_table}' is created (or already exists)."
     )
 
 

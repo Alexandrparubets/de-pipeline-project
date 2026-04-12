@@ -45,6 +45,7 @@ class Settings:
     dwh_table: str = os.getenv("DWH_TABLE", "orders_clean")
     mart_table: str = os.getenv("MART_TABLE", "sales_daily")
     pipeline_runs_table: str = os.getenv("PIPELINE_RUNS_TABLE", "pipeline_runs")
+    ml_table: str = os.getenv("ML_TABLE", "customer_ml_dataset")
 
     source_file: str = os.getenv(
     "SOURCE_FILE",
@@ -55,6 +56,10 @@ class Settings:
 
     chunk_size: int = int(os.getenv("CHUNK_SIZE", 5000))
     historical_period: str = os.getenv("HISTORICAL_PERIOD", "30 days")
+    f_start: int = int(os.getenv("F_START", 60))
+    f_end: int = int(os.getenv("F_END", 30))
+    t_start: int = int(os.getenv("T_START", 30))
+    t_end: int = int(os.getenv("T_END", 0))
 
     
 
