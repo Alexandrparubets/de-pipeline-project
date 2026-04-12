@@ -83,7 +83,7 @@ def run_pipeline() -> None:
             rows_loaded_to_dwh=inserted_rows,
             rows_skipped_in_dwh=skipped_rows,
         )
-        logger.info("✅ Pipeline finished\n ---------------------------------------------")
+        logger.info("✅ Pipeline finished\n --------------------------------------------- python -m pipeline.pipeline")
 
     except ValueError as e:
         finish_pipeline_run_failed(

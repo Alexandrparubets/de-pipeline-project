@@ -44,7 +44,7 @@ def truncate_ml_table(engine, table_name: str) -> None:
     Truncate ML table before reload.
     """
     with engine.begin() as conn:
-        conn.execute(text(f"TRUNCATE TABLE {table_name}"))
+        conn.execute(text(f"TRUNCATE TABLE {table_name} RESTART IDENTITY"))
 
     logger.info(f"🧹 ML table truncated: '{table_name}'")
 
@@ -69,8 +69,14 @@ def insert_rows_to_ml(engine, dwh_table: str, ml_table: str) -> None:
                 invoiceno,
                 SUM(revenue) AS order_value
             FROM {dwh_table}
-            WHERE invoicedate >= CURRENT_DATE - ({settings.f_start} * INTERVAL '1 day')
-            AND invoicedate <  CURRENT_DATE - ({settings.f_end} * INTERVAL '1 day')
+            WHERE invoicedate >= (
+                SELECT MAX(invoicedate) - ({settings.f_start} * INTERVAL '1 day')
+                FROM {dwh_table}
+            )
+            AND invoicedate <  (
+                SELECT MAX(invoicedate) - ({settings.f_end} * INTERVAL '1 day')
+                FROM {dwh_table}
+            )
             GROUP BY customerid, invoiceno
         ),
         order_features AS (
@@ -88,8 +94,14 @@ def insert_rows_to_ml(engine, dwh_table: str, ml_table: str) -> None:
                 COUNT(DISTINCT stockcode)                  AS unique_products_30d,
                 COUNT(DISTINCT DATE(invoicedate))          AS active_days_30d
             FROM {dwh_table}
-            WHERE invoicedate >= CURRENT_DATE - ({settings.f_start} * INTERVAL '1 day')
-            AND invoicedate <  CURRENT_DATE - ({settings.f_end} * INTERVAL '1 day')
+            WHERE invoicedate >= (
+                SELECT MAX(invoicedate) - ({settings.f_start} * INTERVAL '1 day')
+                FROM {dwh_table}
+            )
+            AND invoicedate <  (
+                SELECT MAX(invoicedate) - ({settings.f_end} * INTERVAL '1 day')
+                FROM {dwh_table}
+            )
             GROUP BY customerid
         ),
         customer_features AS (
@@ -109,8 +121,14 @@ def insert_rows_to_ml(engine, dwh_table: str, ml_table: str) -> None:
                 customerid,
                 1 AS target
             FROM {dwh_table}
-            WHERE invoicedate >= CURRENT_DATE - ({settings.t_start} * INTERVAL '1 day')
-            AND invoicedate <  CURRENT_DATE - ({settings.t_end} * INTERVAL '1 day')
+            WHERE invoicedate >= (
+                SELECT MAX(invoicedate) - ({settings.t_start} * INTERVAL '1 day')
+                FROM {dwh_table}
+            )
+            AND invoicedate <  (
+                SELECT MAX(invoicedate) - ({settings.t_end} * INTERVAL '1 day')
+                FROM {dwh_table}
+            )
             GROUP BY customerid
         )
         SELECT
