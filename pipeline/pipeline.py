@@ -17,6 +17,7 @@ from pipeline.load_dwh import load_stg_to_dwh
 from pipeline.load_mart import load_data_mart
 from pipeline.load_ml_table import load_data_ml
 from pipeline.historical_hash import get_new_boundary_date, get_historical_hash, check_historical_hash
+from pipeline.load_ml_to_df import load_ml_dataset
 
 
 logger = get_logger("pipeline.run")
@@ -71,6 +72,7 @@ def run_pipeline() -> None:
         skipped_rows = dwh_stats["skipped_rows"]
         mart_rows = load_data_mart(engine) # load_mart.py
         ml_rows = load_data_ml(engine) # load_ml_table.py
+        X, y = load_ml_dataset(engine) # load_ml_to_df.py
         
 
         finish_pipeline_run_success(

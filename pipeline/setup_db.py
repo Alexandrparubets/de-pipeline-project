@@ -183,7 +183,32 @@ def create_ml_table(engine: Engine) -> None:
 
     logger.info(
         f"📊 ML table ready: table '{settings.ml_table}' is created (or already exists).\n"
-    )    
+    )  
+
+
+def create_cf_table(engine: Engine) -> None:
+    create_table_sql = f"""
+    CREATE TABLE IF NOT EXISTS {settings.cf_table} (
+        id SERIAL PRIMARY KEY,
+        customerid INTEGER NOT NULL,
+        orders_count_30 INTEGER NOT NULL,
+        orders_count_7 INTEGER NOT NULL,
+        total_spent_30 NUMERIC(14, 2) NOT NULL,
+        avg_order_30 NUMERIC(14, 2) NOT NULL,
+        unique_products_30 INTEGER NOT NULL,
+        active_days_30 INTEGER NOT NULL,
+        active_days_7 INTEGER NOT NULL,
+        days_since_last_order_30 INTEGER NOT NULL,
+        std_order_value_30 NUMERIC(14, 2) NOT NULL
+    );
+    """
+
+    with engine.begin() as conn:
+        conn.execute(text(create_table_sql))
+
+    logger.info(
+        f"📊 ML table ready: table '{settings.ml_table}' is created (or already exists).\n"
+    )  
 
 
 def create_pipeline_runs_table(engine: Engine) -> None:

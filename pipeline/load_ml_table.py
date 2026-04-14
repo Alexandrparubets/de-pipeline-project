@@ -150,18 +150,6 @@ def insert_rows_to_ml(engine, dwh_table: str, ml_table: str) -> None:
     logger.info(f"📊 Data inserted into ML table '{ml_table}'")
 
 
-def get_mart_row_count(engine, table_name: str) -> int:
-    """
-    Get number of rows in MART table.
-    """
-    with engine.begin() as conn:
-        result = conn.execute(
-            text(f"SELECT COUNT(*) FROM {table_name}")
-        ).scalar()
-
-    return result
-
-
 def get_ml_row_count(engine, table_name: str) -> int:
     """
     Get number of rows in ML table.
