@@ -63,8 +63,8 @@ def insert_rows_to_cf_table(engine, dwh_table: str, cf_table: str) -> None:
             unique_products_30,
             active_days_30,
             active_days_7,
-            days_since_last_order_30,
-            std_order_value_30
+            days_since_last_order,
+            std_order_value
         )
         WITH ref AS (
             SELECT MAX(invoicedate) AS max_date
@@ -80,6 +80,13 @@ def insert_rows_to_cf_table(engine, dwh_table: str, cf_table: str) -> None:
             WHERE invoicedate >= (ref.max_date - ({settings.f_start} * INTERVAL '1 day'))
             AND invoicedate <  (ref.max_date - ({settings.f_end} * INTERVAL '1 day'))
             GROUP BY customerid, invoiceno
+        ),
+        customer_order_std AS (
+            SELECT
+                customerid,
+                STDDEV(order_value) AS std_order_value
+            FROM order_totals
+            GROUP BY customerid
         ),
         last_order_dates AS (
             SELECT
@@ -98,13 +105,9 @@ def insert_rows_to_cf_table(engine, dwh_table: str, cf_table: str) -> None:
                 DATE_PART(
                     'day',
                     (ref.max_date - ({settings.f_end} * INTERVAL '1 day')) - lod.last_order_date
-                )::INTEGER AS days_since_last_order,
-                STDDEV(ot.order_value) AS std_order_value
+                )::INTEGER AS days_since_last_order
             FROM last_order_dates lod
             CROSS JOIN ref
-            LEFT JOIN order_totals ot
-                ON lod.customerid = ot.customerid
-            GROUP BY lod.customerid, lod.last_order_date, ref.max_date
         ),
         order_features AS (
             SELECT
@@ -155,8 +158,8 @@ def insert_rows_to_cf_table(engine, dwh_table: str, cf_table: str) -> None:
                 tf.unique_products_30d             AS unique_products_30,
                 tf.active_days_30d                 AS active_days_30,
                 COALESCE(ca7.active_days_7d, 0)    AS active_days_7,
-                clo.days_since_last_order          AS days_since_last_order_30,
-                COALESCE(clo.std_order_value, 0)::NUMERIC(14,2) AS std_order_value_30
+                clo.days_since_last_order          AS days_since_last_order,
+                COALESCE(cos.std_order_value, 0)::NUMERIC(14,2) AS std_order_value
             FROM order_features of
             LEFT JOIN txn_features tf
                 ON of.customerid = tf.customerid
@@ -165,7 +168,9 @@ def insert_rows_to_cf_table(engine, dwh_table: str, cf_table: str) -> None:
             LEFT JOIN customer_last_order clo
                 ON of.customerid = clo.customerid
             LEFT JOIN orders_count_7 o7
-                ON of.customerid = o7.customerid;
+                ON of.customerid = o7.customerid
+            LEFT JOIN customer_order_std cos
+                ON of.customerid = cos.customerid;
         """
 
     with engine.begin() as conn:

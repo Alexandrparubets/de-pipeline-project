@@ -198,8 +198,8 @@ def create_cf_table(engine: Engine) -> None:
         unique_products_30 INTEGER NOT NULL,
         active_days_30 INTEGER NOT NULL,
         active_days_7 INTEGER NOT NULL,
-        days_since_last_order_30 INTEGER NOT NULL,
-        std_order_value_30 NUMERIC(14, 2) NOT NULL
+        days_since_last_order INTEGER NOT NULL,
+        std_order_value NUMERIC(14, 2) NOT NULL
     );
     """
 
