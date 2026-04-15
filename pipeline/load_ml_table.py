@@ -18,6 +18,7 @@ def load_data_ml(engine) -> int:
     """
     dwh_table = settings.dwh_table
     ml_table = settings.ml_table
+    cf_table = settings.cf_table
 
     logger.info(
         f"🚀 Starting ML table load: source='{dwh_table}', target='{ml_table}'"
@@ -25,7 +26,7 @@ def load_data_ml(engine) -> int:
 
     try:
         truncate_ml_table(engine, ml_table)
-        insert_rows_to_ml(engine, dwh_table, ml_table)
+        insert_rows_to_ml(engine)
         ml_rows = get_ml_row_count(engine, ml_table)
 
         logger.info(
@@ -49,105 +50,62 @@ def truncate_ml_table(engine, table_name: str) -> None:
     logger.info(f"🧹 ML table truncated: '{table_name}'")
 
 
-def insert_rows_to_ml(engine, dwh_table: str, ml_table: str) -> None:
+def insert_rows_to_ml(engine) -> None:
     """
     Aggregate data from DWH and insert into ML table.
     """
+    
     insert_sql = f"""
-        INSERT INTO {ml_table} (
+        INSERT INTO {settings.ml_table} (
             customerid,
-            orders_count,
-            total_spent,
-            avg_order,
-            unique_products,
-            active_days,
+            orders_count_30,
+            orders_count_7,
+            total_spent_30,
+            avg_order_30,
+            unique_products_30,
+            active_days_30,
+            active_days_7,
+            days_since_last_order,
+            std_order_value,
+            avg_days_between_orders,
             target
         )
-        WITH order_totals AS (
-            SELECT
-                customerid,
-                invoiceno,
-                SUM(revenue) AS order_value
-            FROM {dwh_table}
-            WHERE invoicedate >= (
-                SELECT MAX(invoicedate) - ({settings.f_start} * INTERVAL '1 day')
-                FROM {dwh_table}
-            )
-            AND invoicedate <  (
-                SELECT MAX(invoicedate) - ({settings.f_end} * INTERVAL '1 day')
-                FROM {dwh_table}
-            )
-            GROUP BY customerid, invoiceno
+        WITH ref AS (
+            SELECT MAX(invoicedate) - ({settings.f_end} * INTERVAL '1 day') AS ref_date
+            FROM {settings.dwh_table}
         ),
-        order_features AS (
+        target_window AS (
             SELECT
-                customerid,
-                COUNT(*)              AS orders_count_30d,
-                SUM(order_value)      AS total_spent_30d,      
-                AVG(order_value)      AS avg_order_value_30d
-            FROM order_totals
-            GROUP BY customerid
-        ),
-        txn_features AS (
-            SELECT
-                customerid,
-                COUNT(DISTINCT stockcode)                  AS unique_products_30d,
-                COUNT(DISTINCT DATE(invoicedate))          AS active_days_30d
-            FROM {dwh_table}
-            WHERE invoicedate >= (
-                SELECT MAX(invoicedate) - ({settings.f_start} * INTERVAL '1 day')
-                FROM {dwh_table}
-            )
-            AND invoicedate <  (
-                SELECT MAX(invoicedate) - ({settings.f_end} * INTERVAL '1 day')
-                FROM {dwh_table}
-            )
-            GROUP BY customerid
-        ),
-        customer_features AS (
-            SELECT
-                f.customerid,
-                f.orders_count_30d,
-                f.total_spent_30d,
-                f.avg_order_value_30d,
-                t.unique_products_30d,
-                t.active_days_30d
-            FROM order_features f
-            JOIN txn_features t
-            ON f.customerid = t.customerid
-        ),
-        target_table AS (
-            SELECT
-                customerid,
+                o.customerid,
                 1 AS target
-            FROM {dwh_table}
-            WHERE invoicedate >= (
-                SELECT MAX(invoicedate) - ({settings.t_start} * INTERVAL '1 day')
-                FROM {dwh_table}
-            )
-            AND invoicedate <  (
-                SELECT MAX(invoicedate) - ({settings.t_end} * INTERVAL '1 day')
-                FROM {dwh_table}
-            )
-            GROUP BY customerid
+            FROM {settings.dwh_table} o
+            CROSS JOIN ref
+            WHERE o.invoicedate >= (ref.ref_date + ({settings.t_end} * INTERVAL '1 day'))
+            AND o.invoicedate <  (ref.ref_date + ({settings.t_start} * INTERVAL '1 day'))
+            GROUP BY o.customerid
         )
         SELECT
             cf.customerid,
-            cf.orders_count_30d,
-            cf.total_spent_30d,
-            cf.avg_order_value_30d,
-            cf.unique_products_30d,
-            cf.active_days_30d,
+            cf.orders_count_30,
+            cf.orders_count_7,
+            cf.total_spent_30,
+            cf.avg_order_30,
+            cf.unique_products_30,
+            cf.active_days_30,
+            cf.active_days_7,
+            cf.days_since_last_order,
+            cf.std_order_value,
+            cf.avg_days_between_orders,
             COALESCE(t.target, 0) AS target
-        FROM customer_features cf
-        LEFT JOIN target_table t
-        ON cf.customerid = t.customerid;
+        FROM {settings.cf_table} cf
+        LEFT JOIN target_window t
+            ON cf.customerid = t.customerid;
     """
 
     with engine.begin() as conn:
         conn.execute(text(insert_sql))
 
-    logger.info(f"📊 Data inserted into ML table '{ml_table}'")
+    logger.info(f"📊 Data inserted into ML table '{settings.ml_table}'")
 
 
 def get_ml_row_count(engine, table_name: str) -> int:

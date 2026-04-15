@@ -15,16 +15,21 @@ def load_ml_dataset(engine):
     logger.info(f"📥 Loading ML dataset from table '{table_name}'")
 
     query = f"""
-    SELECT
-        customerid,
-        orders_count,
-        total_spent,
-        avg_order,
-        unique_products,
-        active_days,
-        target
-    FROM {table_name};
-    """
+        SELECT
+            customerid,
+            orders_count_30,
+            orders_count_7,
+            total_spent_30,
+            avg_order_30,
+            unique_products_30,
+            active_days_30,
+            active_days_7,
+            days_since_last_order,
+            std_order_value,
+            avg_days_between_orders,
+            target
+        FROM {table_name};
+        """
 
     with engine.begin() as conn:
         df = pd.read_sql(text(query), conn)
@@ -38,11 +43,16 @@ def load_ml_dataset(engine):
     # Features
     X = df[
         [
-            "orders_count",
-            "total_spent",
-            "avg_order",
-            "unique_products",
-            "active_days",
+           "orders_count_30",
+            "orders_count_7",
+            "total_spent_30",
+            "avg_order_30",
+            "unique_products_30",
+            "active_days_30",
+            "active_days_7",
+            "days_since_last_order",
+            "std_order_value",
+            "avg_days_between_orders"
         ]
     ].copy()
 

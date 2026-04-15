@@ -64,7 +64,8 @@ def insert_rows_to_cf_table(engine, dwh_table: str, cf_table: str) -> None:
             active_days_30,
             active_days_7,
             days_since_last_order,
-            std_order_value
+            std_order_value,
+            avg_days_between_orders
         )
         WITH ref AS (
             SELECT MAX(invoicedate) AS max_date
@@ -148,6 +149,35 @@ def insert_rows_to_cf_table(engine, dwh_table: str, cf_table: str) -> None:
             WHERE o.invoicedate >= (ref.max_date - ({settings.f_end} * INTERVAL '1 day') - INTERVAL '7 days')
             AND o.invoicedate <  (ref.max_date - ({settings.f_end} * INTERVAL '1 day'))
             GROUP BY o.customerid
+        ),
+        customer_orders AS (
+            SELECT
+                o.customerid,
+                o.invoiceno,
+                MIN(o.invoicedate) AS order_date
+            FROM {dwh_table} o
+            CROSS JOIN ref
+            WHERE o.invoicedate >= (ref.max_date - ({settings.f_start} * INTERVAL '1 day'))
+            AND o.invoicedate <  (ref.max_date - ({settings.f_end} * INTERVAL '1 day'))
+            GROUP BY o.customerid, o.invoiceno
+        ),
+        order_gaps AS (
+            SELECT
+                customerid,
+                order_date,
+                LAG(order_date) OVER (
+                    PARTITION BY customerid
+                    ORDER BY order_date
+                ) AS prev_order_date
+            FROM customer_orders
+        ),
+        customer_avg_days_between_orders AS (
+            SELECT
+                customerid,
+                COALESCE(AVG(DATE_PART('day', order_date - prev_order_date)), 0) AS avg_days_between_orders
+            FROM order_gaps
+            WHERE prev_order_date IS NOT NULL
+            GROUP BY customerid
         )
             SELECT
                 of.customerid,
@@ -159,7 +189,8 @@ def insert_rows_to_cf_table(engine, dwh_table: str, cf_table: str) -> None:
                 tf.active_days_30d                 AS active_days_30,
                 COALESCE(ca7.active_days_7d, 0)    AS active_days_7,
                 clo.days_since_last_order          AS days_since_last_order,
-                COALESCE(cos.std_order_value, 0)::NUMERIC(14,2) AS std_order_value
+                COALESCE(cos.std_order_value, 0)::NUMERIC(14,2) AS std_order_value,
+                COALESCE(cog.avg_days_between_orders, 0) AS avg_days_between_orders
             FROM order_features of
             LEFT JOIN txn_features tf
                 ON of.customerid = tf.customerid
@@ -170,7 +201,9 @@ def insert_rows_to_cf_table(engine, dwh_table: str, cf_table: str) -> None:
             LEFT JOIN orders_count_7 o7
                 ON of.customerid = o7.customerid
             LEFT JOIN customer_order_std cos
-                ON of.customerid = cos.customerid;
+                ON of.customerid = cos.customerid
+            LEFT JOIN customer_avg_days_between_orders cog
+                ON of.customerid = cog.customerid;
         """
 
     with engine.begin() as conn:

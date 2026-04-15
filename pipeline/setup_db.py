@@ -166,19 +166,26 @@ def create_mart_table(engine: Engine) -> None:
 
 def create_ml_table(engine: Engine) -> None:
     create_table_sql = f"""
-    CREATE TABLE IF NOT EXISTS {settings.ml_table} (
-        id SERIAL PRIMARY KEY,
-        customerid INTEGER NOT NULL,
-        orders_count INTEGER NOT NULL,
-        total_spent NUMERIC(14, 2) NOT NULL,
-        avg_order NUMERIC(14, 2) NOT NULL,
-        unique_products INTEGER NOT NULL,
-        active_days INTEGER NOT NULL,
-        target INTEGER NOT NULL
-    );
-    """
+        CREATE TABLE IF NOT EXISTS {settings.ml_table} (
+            id SERIAL PRIMARY KEY,
+            customerid INTEGER NOT NULL,
+            orders_count_30 INTEGER NOT NULL,
+            orders_count_7 INTEGER NOT NULL,
+            total_spent_30 NUMERIC(14, 2) NOT NULL,
+            avg_order_30 NUMERIC(14, 2) NOT NULL,
+            unique_products_30 INTEGER NOT NULL,
+            active_days_30 INTEGER NOT NULL,
+            active_days_7 INTEGER NOT NULL,
+            days_since_last_order INTEGER NOT NULL,
+            std_order_value NUMERIC(14, 2) NOT NULL,
+            avg_days_between_orders NUMERIC(10, 2) NOT NULL,
+            target INTEGER NOT NULL
+        );
+        """
+    
 
     with engine.begin() as conn:
+        conn.execute(text(f"DROP TABLE IF EXISTS {settings.ml_table}"))
         conn.execute(text(create_table_sql))
 
     logger.info(
@@ -199,11 +206,14 @@ def create_cf_table(engine: Engine) -> None:
         active_days_30 INTEGER NOT NULL,
         active_days_7 INTEGER NOT NULL,
         days_since_last_order INTEGER NOT NULL,
-        std_order_value NUMERIC(14, 2) NOT NULL
+        std_order_value NUMERIC(14, 2) NOT NULL,
+        avg_days_between_orders NUMERIC(10, 2) NOT NULL
     );
     """
+    
 
     with engine.begin() as conn:
+        conn.execute(text(f"DROP TABLE IF EXISTS {settings.cf_table}"))
         conn.execute(text(create_table_sql))
 
     logger.info(
