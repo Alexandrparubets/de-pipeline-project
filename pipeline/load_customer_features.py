@@ -65,7 +65,12 @@ def insert_rows_to_cf_table(engine, dwh_table: str, cf_table: str) -> None:
             active_days_7,
             days_since_last_order,
             std_order_value,
-            avg_days_between_orders
+            avg_days_between_orders,
+            customer_lifetime_days,
+            total_orders_count,
+            total_spent_lifetime,
+            avg_order_lifetime,
+            order_frequency_ratio
         )
         WITH ref AS (
             SELECT MAX(invoicedate) AS max_date
@@ -178,6 +183,37 @@ def insert_rows_to_cf_table(engine, dwh_table: str, cf_table: str) -> None:
             FROM order_gaps
             WHERE prev_order_date IS NOT NULL
             GROUP BY customerid
+        ),
+        customer_lifetime AS (
+            SELECT
+                o.customerid,
+                DATE_PART(
+                    'day',
+                    (ref.max_date - ({settings.f_end} * INTERVAL '1 day')) - MIN(o.invoicedate)
+                )::INTEGER AS customer_lifetime_days,
+                COUNT(DISTINCT o.invoiceno) AS total_orders_count
+            FROM {dwh_table} o
+            CROSS JOIN ref
+            WHERE o.invoicedate < (ref.max_date - ({settings.f_end} * INTERVAL '1 day'))
+            GROUP BY o.customerid, ref.max_date
+        ),
+        lifetime_order_totals AS (
+            SELECT
+                o.customerid,
+                o.invoiceno,
+                SUM(o.revenue) AS order_value
+            FROM {dwh_table} o
+            CROSS JOIN ref
+            WHERE o.invoicedate < (ref.max_date - ({settings.f_end} * INTERVAL '1 day'))
+            GROUP BY o.customerid, o.invoiceno
+        ),
+        customer_lifetime_order_stats AS (
+            SELECT
+                customerid,
+                SUM(order_value) AS total_spent_lifetime,
+                AVG(order_value) AS avg_order_lifetime
+            FROM lifetime_order_totals
+            GROUP BY customerid
         )
             SELECT
                 of.customerid,
@@ -190,7 +226,15 @@ def insert_rows_to_cf_table(engine, dwh_table: str, cf_table: str) -> None:
                 COALESCE(ca7.active_days_7d, 0)    AS active_days_7,
                 clo.days_since_last_order          AS days_since_last_order,
                 COALESCE(cos.std_order_value, 0)::NUMERIC(14,2) AS std_order_value,
-                COALESCE(cog.avg_days_between_orders, 0) AS avg_days_between_orders
+                COALESCE(cog.avg_days_between_orders, 0) AS avg_days_between_orders,
+                COALESCE(cl.customer_lifetime_days, 0) AS customer_lifetime_days,
+                COALESCE(cl.total_orders_count, 0) AS total_orders_count,
+                COALESCE(cols.total_spent_lifetime, 0) AS total_spent_lifetime,
+                COALESCE(cols.avg_order_lifetime, 0) AS avg_order_lifetime,
+                CASE 
+                    WHEN of.orders_count_30d = 0 THEN 0
+                    ELSE COALESCE(o7.orders_count_7d, 0)::float / of.orders_count_30d
+                END AS order_frequency_ratio
             FROM order_features of
             LEFT JOIN txn_features tf
                 ON of.customerid = tf.customerid
@@ -203,7 +247,11 @@ def insert_rows_to_cf_table(engine, dwh_table: str, cf_table: str) -> None:
             LEFT JOIN customer_order_std cos
                 ON of.customerid = cos.customerid
             LEFT JOIN customer_avg_days_between_orders cog
-                ON of.customerid = cog.customerid;
+                ON of.customerid = cog.customerid
+            LEFT JOIN customer_lifetime cl
+                ON of.customerid = cl.customerid
+            LEFT JOIN customer_lifetime_order_stats cols
+                ON of.customerid = cols.customerid;
         """
 
     with engine.begin() as conn:

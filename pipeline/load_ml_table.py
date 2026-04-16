@@ -68,6 +68,11 @@ def insert_rows_to_ml(engine) -> None:
             days_since_last_order,
             std_order_value,
             avg_days_between_orders,
+            customer_lifetime_days,
+            total_orders_count,
+            total_spent_lifetime,
+            avg_order_lifetime,
+            order_frequency_ratio,
             target
         )
         WITH ref AS (
@@ -96,6 +101,11 @@ def insert_rows_to_ml(engine) -> None:
             cf.days_since_last_order,
             cf.std_order_value,
             cf.avg_days_between_orders,
+            cf.customer_lifetime_days,
+            cf.total_orders_count,
+            cf.total_spent_lifetime,
+            cf.avg_order_lifetime,
+            cf.order_frequency_ratio,
             COALESCE(t.target, 0) AS target
         FROM {settings.cf_table} cf
         LEFT JOIN target_window t

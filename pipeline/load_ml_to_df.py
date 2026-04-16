@@ -27,6 +27,11 @@ def load_ml_dataset(engine):
             days_since_last_order,
             std_order_value,
             avg_days_between_orders,
+            customer_lifetime_days,
+            total_orders_count,
+            total_spent_lifetime,
+            avg_order_lifetime,
+            order_frequency_ratio,
             target
         FROM {table_name};
         """
@@ -43,16 +48,21 @@ def load_ml_dataset(engine):
     # Features
     X = df[
         [
-           "orders_count_30",
-            "orders_count_7",
+           # "orders_count_30",
+           # "orders_count_7",
             "total_spent_30",
             "avg_order_30",
             "unique_products_30",
-            "active_days_30",
-            "active_days_7",
+           # "active_days_30",
+           # "active_days_7",
             "days_since_last_order",
-            "std_order_value",
-            "avg_days_between_orders"
+            #"std_order_value",
+            #"avg_days_between_orders",
+            "customer_lifetime_days",
+            "total_orders_count",
+            #"total_spent_lifetime",
+            #"avg_order_lifetime",
+            #"order_frequency_ratio"
         ]
     ].copy()
 
@@ -62,4 +72,4 @@ def load_ml_dataset(engine):
     logger.info(f"✅ ML dataset prepared: X_shape={X.shape}, y_shape={y.shape}\n")
 
 
-    return X, y
+    return X, y, df

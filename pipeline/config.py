@@ -47,6 +47,7 @@ class Settings:
     pipeline_runs_table: str = os.getenv("PIPELINE_RUNS_TABLE", "pipeline_runs")
     ml_table: str = os.getenv("ML_TABLE", "customer_ml_dataset")
     cf_table: str = os.getenv("CF_TABLE", "customer_features")
+    c_scores: str = os.getenv("C_SCORES", "customer_scores")
 
     source_file: str = os.getenv(
     "SOURCE_FILE",

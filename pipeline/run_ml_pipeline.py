@@ -1,18 +1,14 @@
-import pandas as pd
 from pipeline.connection import get_engine
-from pipeline.setup_db import create_ml_table, create_cf_table
+from pipeline.setup_db import create_ml_table, create_cf_table, create_c_score_table
 from pipeline.load_ml_table import load_data_ml
 from pipeline.load_customer_features import load_cf_table
 from pipeline.load_ml_to_df import load_ml_dataset
 from pipeline.logger_config import get_logger
 from pipeline.config import settings
+from pipeline.train_model import train_model
+from pipeline.score_model import score_model, save_model, model_to_db, insert_scores
 
-from sklearn.model_selection import train_test_split
-# from sklearn.linear_model import LogisticRegression
-# from sklearn.metrics import accuracy_score
-from sklearn.metrics import classification_report
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import roc_auc_score
+
 
 
 logger = get_logger("pipeline.run_ml")
@@ -28,37 +24,19 @@ def run_ml_pipeline():
     load_cf_table(engine) #load_customer_features.py
     load_data_ml(engine) # load_ml_table.py
 
-    X, y = load_ml_dataset(engine) # load_ml_to_df.py
+    X, y, df = load_ml_dataset(engine) # load_ml_to_df.py
     
-    X_train, X_test, y_train, y_test = train_test_split(
-    X,
-    y,
-    test_size=0.2,
-    random_state=42,
-    )
+    model = train_model(X, y) # train_model.py
 
-    model = RandomForestClassifier(
-    n_estimators=100,
-    random_state=42,
-    )
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-    print(classification_report(y_test, y_pred))
+    save_model(model)
 
-    y_prob = model.predict_proba(X_test)[:, 1]
+    y_prob = score_model(model, X)
 
-    roc_auc = roc_auc_score(y_test, y_prob)
+    df_result = model_to_db(df, X, y_prob)
 
-    print(roc_auc)
+    create_c_score_table(engine)
 
-
-    importances = model.feature_importances_
-    feature_importance_df = pd.DataFrame({
-        "feature": X.columns,
-        "importance": importances
-    }).sort_values(by="importance", ascending=False)
-
-    print(feature_importance_df)
+    insert_scores(engine, df_result, settings.c_scores)
 
     logger.info(f"✅ ML pipeline finished\n --------------------------------------------- python -m pipeline.run_ml_pipeline")
 

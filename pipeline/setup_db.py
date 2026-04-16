@@ -179,6 +179,11 @@ def create_ml_table(engine: Engine) -> None:
             days_since_last_order INTEGER NOT NULL,
             std_order_value NUMERIC(14, 2) NOT NULL,
             avg_days_between_orders NUMERIC(10, 2) NOT NULL,
+            customer_lifetime_days INTEGER NOT NULL,
+            total_orders_count INTEGER NOT NULL,
+            total_spent_lifetime NUMERIC(14,2) NOT NULL,
+            avg_order_lifetime NUMERIC(14,2) NOT NULL,
+            order_frequency_ratio NUMERIC(10,4) NOT NULL,
             target INTEGER NOT NULL
         );
         """
@@ -207,7 +212,12 @@ def create_cf_table(engine: Engine) -> None:
         active_days_7 INTEGER NOT NULL,
         days_since_last_order INTEGER NOT NULL,
         std_order_value NUMERIC(14, 2) NOT NULL,
-        avg_days_between_orders NUMERIC(10, 2) NOT NULL
+        avg_days_between_orders NUMERIC(10, 2) NOT NULL,
+        customer_lifetime_days INTEGER NOT NULL,
+        total_orders_count INTEGER NOT NULL,
+        total_spent_lifetime NUMERIC(14,2) NOT NULL,
+        avg_order_lifetime NUMERIC(14,2) NOT NULL,
+        order_frequency_ratio NUMERIC(10,4) NOT NULL
     );
     """
     
@@ -267,3 +277,23 @@ def drop_raw_stg_table(engine: Engine) -> None:
         conn.execute(text(drop_sql))
 
     logger.info(f"🧹 Staging dropped: table '{table_name}' was removed.")
+
+
+def create_c_score_table(engine: Engine) -> None:
+    create_table_sql = f"""
+    CREATE TABLE IF NOT EXISTS {settings.c_scores} (
+        customerid INTEGER NOT NULL,
+        probability FLOAT NOT NULL,
+        scored_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (customerid, scored_at)
+    );
+    """
+    
+
+    with engine.begin() as conn:
+        
+        conn.execute(text(create_table_sql))
+
+    logger.info(
+        f"📊 C_SCORE table ready: table '{settings.c_scores}' is created (or already exists).\n"
+    )  
