@@ -63,6 +63,8 @@ class Settings:
     t_start: int = int(os.getenv("T_START", 30))
     t_end: int = int(os.getenv("T_END", 0))
 
+    model_path: str = os.getenv("MODEL_PATH", "models/model.pkl")
+
     
 
 settings = Settings()

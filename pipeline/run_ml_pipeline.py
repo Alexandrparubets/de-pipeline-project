@@ -28,15 +28,15 @@ def run_ml_pipeline():
     
     model = train_model(X, y) # train_model.py
 
-    save_model(model)
+    save_model(model) # score_model.py
 
-    y_prob = score_model(model, X)
+    y_prob = score_model(model, X) # score_model.py
 
-    df_result = model_to_db(df, X, y_prob)
+    df_result = model_to_db(df, X, y_prob) # score_model.py
 
-    create_c_score_table(engine)
+    create_c_score_table(engine) # setup_db.py
 
-    insert_scores(engine, df_result, settings.c_scores)
+    insert_scores(engine, df_result, settings.c_scores) # score_model.py
 
     logger.info(f"✅ ML pipeline finished\n --------------------------------------------- python -m pipeline.run_ml_pipeline")
 

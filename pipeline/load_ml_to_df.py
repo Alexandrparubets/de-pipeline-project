@@ -69,7 +69,7 @@ def load_ml_dataset(engine):
     # Target
     y = df["target"].copy()
 
-    logger.info(f"✅ ML dataset prepared: X_shape={X.shape}, y_shape={y.shape}\n")
+    logger.info(f"✅ ML dataset prepared: df_shape={df.shape}, X_shape={X.shape}, y_shape={y.shape}\n")
 
 
     return X, y, df

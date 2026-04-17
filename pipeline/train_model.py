@@ -3,17 +3,22 @@ from sklearn.model_selection import train_test_split
 #from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import classification_report, roc_auc_score
+from pipeline.logger_config import get_logger
+
+logger = get_logger(__name__)
 
 
 
 def train_model(X, y):
+    logger.info("🚀 Starting model training")
+
     X_train, X_test, y_train, y_test = train_test_split(
     X,
     y,
     test_size=0.2,
     random_state=42,
     )
-
+    logger.info(f"📊 Train shape: {X_train.shape}, Test shape: {X_test.shape}")
     # model = RandomForestClassifier(
     # n_estimators=100,
     # random_state=42,
@@ -28,8 +33,8 @@ def train_model(X, y):
     y_pred = model.predict(X_test)
     y_prob = model.predict_proba(X_test)[:, 1]
     
-    print(classification_report(y_test, y_pred))
-    print(roc_auc_score(y_test, y_prob))
+    logger.info("\n" + classification_report(y_test, y_pred))
+    logger.info(f"ROC AUC: {roc_auc_score(y_test, y_prob):.4f}")
 
     
     importances = model.feature_importances_
@@ -38,6 +43,8 @@ def train_model(X, y):
         "importance": importances
     }).sort_values(by="importance", ascending=False)
 
-    print(feature_importance_df)
+    logger.info("\n" + feature_importance_df.to_string())
+
+    logger.info("✅ Model training completed \n")
 
     return model
