@@ -4,6 +4,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import classification_report, roc_auc_score
 from pipeline.logger_config import get_logger
+from pipeline.config import settings
+import joblib
+import os
 
 logger = get_logger(__name__)
 
@@ -45,6 +48,15 @@ def train_model(X, y):
 
     logger.info("\n" + feature_importance_df.to_string())
 
-    logger.info("✅ Model training completed \n")
+    logger.info("✅ Model training completed ")
 
     return model
+
+
+def save_model(model):
+    logger.info(f"💾 Saving model to {settings.model_path}")
+    logger.info(f"📦 Model type: {type(model).__name__}")
+    os.makedirs(os.path.dirname(settings.model_path), exist_ok=True)
+    joblib.dump(model, settings.model_path)
+
+    logger.info("✅ Model saved successfully\n")

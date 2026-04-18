@@ -5,8 +5,8 @@ from pipeline.load_customer_features import load_cf_table
 from pipeline.load_ml_to_df import load_ml_dataset
 from pipeline.logger_config import get_logger
 from pipeline.config import settings
-from pipeline.train_model import train_model
-from pipeline.score_model import score_model, save_model, model_to_db, insert_scores
+from pipeline.train_model import train_model, save_model
+from pipeline.score_model import score_model, model_to_db, insert_scores
 
 
 
@@ -18,17 +18,19 @@ def run_ml_pipeline():
     logger.info("🚀 ML pipeline started")
 
     engine = get_engine()
+    f_start = settings.f_start
+    f_end = settings.f_end
 
     create_ml_table(engine) # setup_db.py
     create_cf_table(engine) # setup_db.py
-    load_cf_table(engine) #load_customer_features.py
+    load_cf_table(engine, f_start, f_end) #load_customer_features.py
     load_data_ml(engine) # load_ml_table.py
 
     X, y, df = load_ml_dataset(engine) # load_ml_to_df.py
     
     model = train_model(X, y) # train_model.py
 
-    save_model(model) # score_model.py
+    save_model(model) # train_model.py
 
     y_prob = score_model(model, X) # score_model.py
 

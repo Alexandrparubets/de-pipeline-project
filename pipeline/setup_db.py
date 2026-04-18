@@ -296,4 +296,5 @@ def create_c_score_table(engine: Engine) -> None:
 
     logger.info(
         f"📊 C_SCORE table ready: table '{settings.c_scores}' is created (or already exists).\n"
-    )  
+    )
+    

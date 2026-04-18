@@ -48,7 +48,7 @@ class Settings:
     ml_table: str = os.getenv("ML_TABLE", "customer_ml_dataset")
     cf_table: str = os.getenv("CF_TABLE", "customer_features")
     c_scores: str = os.getenv("C_SCORES", "customer_scores")
-
+    
     source_file: str = os.getenv(
     "SOURCE_FILE",
     "data/source/online_retail.xlsx",
