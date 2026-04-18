@@ -65,6 +65,8 @@ class Settings:
 
     model_path: str = os.getenv("MODEL_PATH", "models/model.pkl")
 
+    threshold: float = float(os.getenv("THRESHOLD", 0.5))
+
     
 
 settings = Settings()

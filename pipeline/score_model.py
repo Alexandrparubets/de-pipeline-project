@@ -71,11 +71,20 @@ def model_to_db(df, X, y_prob):
 
     logger.info(f"📊 Input sizes → X: {len(X)}, y_prob: {len(y_prob)}")
 
+    threshold = settings.threshold  # или 0.5
+    if not (0 <= threshold <= 1):
+        raise ValueError(f"Invalid THRESHOLD: {threshold}")
+
     df_result = df.loc[X.index].copy()
 
     df_result["probability"] = np.array(y_prob)
 
-    df_result = df_result[["customerid", "probability"]]
+    df_result["prediction"] = (df_result["probability"] >= threshold).astype(int)
+
+    df_result = df_result[["customerid", "probability", "prediction"]]
+
+    logger.info(f"🎯 Using threshold: {threshold}")
+    logger.info(f"📊 Predictions distribution: {df_result['prediction'].value_counts().to_dict()}")
 
     logger.info(f"📦 Prepared rows for DB insert: {len(df_result)}")
     logger.info(f"🧩 Output columns: {list(df_result.columns)}\n")
@@ -92,8 +101,8 @@ def insert_scores(engine, df_result, table_name: str) -> None:
         return
     
     insert_sql = f"""
-        INSERT INTO {table_name} (customerid, probability)
-        VALUES (:customerid, :probability)
+        INSERT INTO {table_name} (customerid, probability, prediction)
+        VALUES (:customerid, :probability, :prediction)
     """
 
     data = df_result.to_dict(orient="records")

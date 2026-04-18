@@ -284,6 +284,7 @@ def create_c_score_table(engine: Engine) -> None:
     CREATE TABLE IF NOT EXISTS {settings.c_scores} (
         customerid INTEGER NOT NULL,
         probability FLOAT NOT NULL,
+        prediction FLOAT NOT NULL,
         scored_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (customerid, scored_at)
     );
