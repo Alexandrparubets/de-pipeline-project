@@ -48,6 +48,7 @@ class Settings:
     ml_table: str = os.getenv("ML_TABLE", "customer_ml_dataset")
     cf_table: str = os.getenv("CF_TABLE", "customer_features")
     c_scores: str = os.getenv("C_SCORES", "customer_scores")
+    ml_models_table: str = os.getenv("ML_MODELS_TABLE", "ml_models")
     
     source_file: str = os.getenv(
     "SOURCE_FILE",
@@ -66,6 +67,9 @@ class Settings:
     model_path: str = os.getenv("MODEL_PATH", "models/model.pkl")
 
     threshold: float = float(os.getenv("THRESHOLD", 0.5))
+    roc_auc_threshold: float = float(os.getenv("ROC_AUC_THRESHOLD", 0.7))
+
+
 
     
 

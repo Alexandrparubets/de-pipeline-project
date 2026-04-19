@@ -298,4 +298,24 @@ def create_c_score_table(engine: Engine) -> None:
     logger.info(
         f"📊 C_SCORE table ready: table '{settings.c_scores}' is created (or already exists).\n"
     )
+
+
+def create_ml_models_table(engine: Engine) -> None:
+    create_sql = f"""
+    CREATE TABLE IF NOT EXISTS {settings.ml_models_table} (
+        id SERIAL PRIMARY KEY,
+        model_name TEXT NOT NULL,
+        model_path TEXT NOT NULL,
+        model_version INTEGER,
+        threshold DOUBLE PRECISION,
+        roc_auc DOUBLE PRECISION,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        is_active BOOLEAN DEFAULT TRUE
+    );
+    """
+
+    with engine.begin() as conn:
+        conn.execute(text(create_sql))
+
+    logger.info(f"📊 ML models table ready: {settings.ml_models_table} is created (or already exists).\n")
     
