@@ -284,10 +284,16 @@ def create_c_score_table(engine: Engine) -> None:
     CREATE TABLE IF NOT EXISTS {settings.c_scores} (
         customerid INTEGER NOT NULL,
         model_id INTEGER NOT NULL,
+        run_id INTEGER NOT NULL,
         probability DOUBLE PRECISION NOT NULL,
         prediction INTEGER NOT NULL,
         scored_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (customerid, scored_at)
+        PRIMARY KEY (customerid, run_id),
+
+        CONSTRAINT fk_model
+            FOREIGN KEY (model_id)
+            REFERENCES {settings.ml_models_table}(id)
+            ON DELETE RESTRICT
     );
     """
     

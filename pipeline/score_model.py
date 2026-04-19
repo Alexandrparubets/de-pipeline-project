@@ -61,7 +61,7 @@ def score_model(X, model_path):
     return y_prob
 
 
-def model_to_db(df, X, y_prob, threshold, model_id):
+def model_to_db(df, X, y_prob, threshold, model_id, run_id):
 
     logger.info("\n--------- PREPARE FOR DB ---------")
     logger.info("📤 Preparing data for DB insert")
@@ -76,13 +76,17 @@ def model_to_db(df, X, y_prob, threshold, model_id):
 
     df_result = df.loc[X.index].copy()
 
+    df_result["run_id"] = run_id
+
     df_result["model_id"] = model_id
 
     df_result["probability"] = np.array(y_prob)
 
     df_result["prediction"] = (df_result["probability"] >= threshold).astype(int)
 
-    df_result = df_result[["customerid", "model_id", "probability", "prediction"]]
+    df_result = df_result[
+    ["customerid", "model_id", "run_id", "probability", "prediction"]
+    ]
 
     logger.info(f"🎯 Using threshold: {threshold}")
     logger.info(f"📊 Predictions distribution: {df_result['prediction'].value_counts().to_dict()}")
@@ -93,7 +97,7 @@ def model_to_db(df, X, y_prob, threshold, model_id):
     return df_result
 
 
-def insert_scores(engine, df_result, table_name: str) -> None:
+def insert_scores(engine, df_result, run_id, table_name: str) -> None:
     logger.info("\n--------- DB INSERT ---------")
     logger.info("📥 Starting insert into scores table")
 
@@ -102,8 +106,8 @@ def insert_scores(engine, df_result, table_name: str) -> None:
         return
     
     insert_sql = f"""
-        INSERT INTO {table_name} (customerid, model_id, probability, prediction)
-        VALUES (:customerid, :model_id, :probability, :prediction)
+        INSERT INTO {table_name} (run_id, customerid, model_id, probability, prediction)
+        VALUES (:run_id, :customerid, :model_id, :probability, :prediction)
     """
 
     data = df_result.to_dict(orient="records")
@@ -111,12 +115,25 @@ def insert_scores(engine, df_result, table_name: str) -> None:
     logger.info(f"📦 Rows to insert: {len(df_result)}")
     logger.info(f"🗂 Target table: {table_name}")
 
-    logger.info(f"🧹 Clearing target table: {table_name}")
-    logger.info("✅ Target table cleared")
+    #logger.info(f"🧹 Clearing target table: {table_name}")
+    #logger.info("✅ Target table cleared")
 
     with engine.begin() as conn:
-        conn.execute(text(f"TRUNCATE TABLE {table_name}"))
+        #conn.execute(text(f"TRUNCATE TABLE {table_name}"))
         conn.execute(text(insert_sql), data)
-
-    logger.info("✅ Insert completed\n")
     
+    logger.info(f"🧾 Inserting scoring results for run_id={run_id}\n")
+
+    
+
+
+def get_next_run_id(engine) -> int:
+    query = text(f"""
+        SELECT COALESCE(MAX(run_id), 0) + 1
+        FROM {settings.c_scores}
+    """)
+    with engine.begin() as conn:
+        run_id = conn.execute(query).scalar() or 1
+
+    logger.info(f"🔢 Scoring run_id: {run_id}")
+    return run_id
