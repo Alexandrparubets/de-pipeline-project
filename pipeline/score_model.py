@@ -9,7 +9,7 @@ import os
 logger = get_logger(__name__)
 
 
-def score_model(X):
+def score_model(X, model_path):
 
     logger.info("\n--------- MODEL SCORING ---------")
     logger.info("🎯 Starting model scoring")
@@ -17,13 +17,13 @@ def score_model(X):
     logger.info(f"📦 Loading model from {settings.model_path}")
    
     try:
-        model = joblib.load(settings.model_path)
+        model = joblib.load(model_path)
     except FileNotFoundError:
-        raise FileNotFoundError(f"Model file not found: {settings.model_path}")
+        raise FileNotFoundError(f"Model file not found: {model_path}")
     except Exception as e:
         raise RuntimeError(f"Failed to load model: {e}")
 
-    logger.info(f"📦 Model loaded from {settings.model_path}")
+    logger.info(f"📦 Model loaded from {model_path}")
     logger.info(f"🧠 Model features: {list(model.feature_names_in_)}")
     logger.info(f"📥 Input features: {list(X.columns)}")
 
@@ -61,7 +61,7 @@ def score_model(X):
     return y_prob
 
 
-def model_to_db(df, X, y_prob):
+def model_to_db(df, X, y_prob, threshold, model_id):
 
     logger.info("\n--------- PREPARE FOR DB ---------")
     logger.info("📤 Preparing data for DB insert")
@@ -71,17 +71,18 @@ def model_to_db(df, X, y_prob):
 
     logger.info(f"📊 Input sizes → X: {len(X)}, y_prob: {len(y_prob)}")
 
-    threshold = settings.threshold  # или 0.5
     if not (0 <= threshold <= 1):
         raise ValueError(f"Invalid THRESHOLD: {threshold}")
 
     df_result = df.loc[X.index].copy()
 
+    df_result["model_id"] = model_id
+
     df_result["probability"] = np.array(y_prob)
 
     df_result["prediction"] = (df_result["probability"] >= threshold).astype(int)
 
-    df_result = df_result[["customerid", "probability", "prediction"]]
+    df_result = df_result[["customerid", "model_id", "probability", "prediction"]]
 
     logger.info(f"🎯 Using threshold: {threshold}")
     logger.info(f"📊 Predictions distribution: {df_result['prediction'].value_counts().to_dict()}")
@@ -101,8 +102,8 @@ def insert_scores(engine, df_result, table_name: str) -> None:
         return
     
     insert_sql = f"""
-        INSERT INTO {table_name} (customerid, probability, prediction)
-        VALUES (:customerid, :probability, :prediction)
+        INSERT INTO {table_name} (customerid, model_id, probability, prediction)
+        VALUES (:customerid, :model_id, :probability, :prediction)
     """
 
     data = df_result.to_dict(orient="records")

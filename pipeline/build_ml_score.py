@@ -219,6 +219,6 @@ def build_ml_score_df(
     f"📦 Scoring dataset built: rows={len(df)}, cols={len(df.columns)}, "
     f"features_shape={X.shape}"
     )
-    logger.info(f"🧩 Feature columns: {feature_cols}")
+    logger.info(f"🧩 Feature columns: {feature_cols}\n")
  
     return df, X

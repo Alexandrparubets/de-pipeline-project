@@ -58,7 +58,7 @@ def load_ml_models_table(
 
     logger.info(
         f"📦 Model metadata inserted: "
-        f"name={model_name}, version={model_version}, "
+        f"name={model_name}, path={model_path}, model_id={model_version}, "
         f"roc_auc={roc_auc:.4f}, threshold={threshold}"
     )
     logger.info("✅ ML models table load completed\n")
