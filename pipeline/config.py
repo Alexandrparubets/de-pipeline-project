@@ -68,6 +68,8 @@ class Settings:
 
     threshold: float = float(os.getenv("THRESHOLD", 0.5))
     roc_auc_threshold: float = float(os.getenv("ROC_AUC_THRESHOLD", 0.7))
+    segment_high_threshold: float = float(os.getenv("SEGMENT_HIGH_THRESHOLD", 0.7))
+    segment_medium_threshold: float = float(os.getenv("SEGMENT_MEDIUM_THRESHOLD", 0.4))
 
 
 

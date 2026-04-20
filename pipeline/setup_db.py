@@ -288,6 +288,7 @@ def create_c_score_table(engine: Engine) -> None:
         probability DOUBLE PRECISION NOT NULL,
         prediction INTEGER NOT NULL,
         scored_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        segment TEXT,
         PRIMARY KEY (customerid, run_id),
 
         CONSTRAINT fk_model

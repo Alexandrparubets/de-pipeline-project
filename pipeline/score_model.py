@@ -84,15 +84,42 @@ def model_to_db(df, X, y_prob, threshold, model_id, run_id):
 
     df_result["prediction"] = (df_result["probability"] >= threshold).astype(int)
 
+    conditions = [
+        df_result["probability"] >= settings.segment_high_threshold,
+        df_result["probability"] >= settings.segment_medium_threshold
+    ]
+
+    choices = ["high", "medium"]
+
+    df_result["segment"] = np.select(conditions, choices, default="low")
     df_result = df_result[
-    ["customerid", "model_id", "run_id", "probability", "prediction"]
+    ["customerid", "model_id", "run_id", "probability", "prediction", "segment"]
     ]
 
     logger.info(f"🎯 Using threshold: {threshold}")
     logger.info(f"📊 Predictions distribution: {df_result['prediction'].value_counts().to_dict()}")
 
     logger.info(f"📦 Prepared rows for DB insert: {len(df_result)}")
-    logger.info(f"🧩 Output columns: {list(df_result.columns)}\n")
+    logger.info(f"🧩 Output columns: {list(df_result.columns)}")
+
+    segment_counts = df_result["segment"].value_counts().to_dict()
+
+    logger.info(f"📊 Segment distribution (run_id={run_id}): {segment_counts}")
+
+    segment_ratio = (df_result["segment"].value_counts(normalize=True) * 100).round(0).astype(int)
+    segment_ratio = {k: f"{v}%" for k, v in segment_ratio.to_dict().items()}
+
+    logger.info(f"📈 Segment ratio (run_id={run_id}): {segment_ratio}")
+
+    avg_prob_by_segment = (
+        df_result
+        .groupby("segment")["probability"]
+        .mean()
+        .round(2)
+        .to_dict()
+    )
+
+    logger.info(f"📊 Avg probability by segment: {avg_prob_by_segment}")
 
     return df_result
 
@@ -106,8 +133,8 @@ def insert_scores(engine, df_result, run_id, table_name: str) -> None:
         return
     
     insert_sql = f"""
-        INSERT INTO {table_name} (run_id, customerid, model_id, probability, prediction)
-        VALUES (:run_id, :customerid, :model_id, :probability, :prediction)
+        INSERT INTO {table_name} (run_id, customerid, model_id, probability, prediction, segment)
+        VALUES (:run_id, :customerid, :model_id, :probability, :prediction, :segment)
     """
 
     data = df_result.to_dict(orient="records")
