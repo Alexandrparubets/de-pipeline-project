@@ -121,6 +121,24 @@ def model_to_db(df, X, y_prob, threshold, model_id, run_id):
 
     logger.info(f"📊 Avg probability by segment: {avg_prob_by_segment}")
 
+    pred_ratio_by_segment = (
+        df_result
+        .groupby("segment")["prediction"]
+        .value_counts(normalize=True)
+        .mul(100)
+        .round(0)
+        .astype(int)
+        .unstack(fill_value=0)
+        .rename(columns={0: "pred_0", 1: "pred_1"})
+    )
+
+    pred_ratio_by_segment = {
+        k: {kk: f"{vv}%" for kk, vv in v.items()}
+        for k, v in pred_ratio_by_segment.to_dict(orient="index").items()
+    }
+
+    logger.info(f"📊 Prediction distribution by segment: {pred_ratio_by_segment}")
+
     return df_result
 
 
