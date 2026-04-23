@@ -1,11 +1,12 @@
 from pipeline.connection import get_engine, test_connection
-from pipeline.setup_db import create_ml_models_table
+from pipeline.setup_db import create_ml_models_table, create_ml_model_baselines_table
 from pipeline.build_ml_dataset import build_ml_dataset_df
 from pipeline.logger_config import get_logger
 from pipeline.config import settings
 from pipeline.train_model import train_model, save_model
 from pipeline.load_ml_models import load_ml_models_table
-
+from pipeline.build_drift_baseline import build_drift_baseline
+from pipeline.load_drift_baseline import load_drift_baseline_table
 
 
 
@@ -18,6 +19,7 @@ def run_train():
     engine = get_engine()
     test_connection(engine)
     create_ml_models_table(engine)
+    create_ml_model_baselines_table(engine)
 
     f_start = settings.f_start
     f_end = settings.f_end
@@ -43,13 +45,17 @@ def run_train():
 
     save_model(model) # train_model.py
 
-    load_ml_models_table(
+    model_id = load_ml_models_table(
     engine,
     model_name,
     model_path,
     roc_auc,
     threshold
-    )
+    ) # load_ml_models
+
+    baseline_df = build_drift_baseline(X, model_id)
+
+    load_drift_baseline_table(engine, baseline_df)
 
     logger.info(f"✅ ML train finished\n --------------------------------------------- python -m pipeline.run_train")
 

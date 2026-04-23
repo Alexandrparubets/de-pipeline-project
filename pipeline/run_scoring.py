@@ -5,6 +5,8 @@ from pipeline.logger_config import get_logger
 from pipeline.config import settings
 from pipeline.score_model import score_model, model_to_db, insert_scores, get_next_run_id
 from pipeline.get_active_model import get_active_model
+from pipeline.build_current_stats import build_current_stats, load_baseline, drift_check
+
 
 
 
@@ -43,6 +45,11 @@ def run_scoring():
     df_result = model_to_db(df, X, y_prob, threshold, model_id, run_id) # score_model.py
 
     insert_scores(engine, df_result, run_id, customer_scores_table) # score_model.py
+
+    baseline_df = load_baseline(engine, model_id)
+    current_df = build_current_stats(X)
+
+    df_compare = drift_check(baseline_df, current_df)
 
     logger.info(f"✅ ML Scoring finished\n --------------------------------------------- python -m pipeline.run_scoring")
 

@@ -54,7 +54,7 @@ def build_ml_dataset_df(
                 lod.last_order_date,
                 DATE_PART(
                     'day',
-                    (ref.max_date - INTERVAL '1 day' * :f_start) - lod.last_order_date
+                    (ref.max_date - lod.last_order_date) 
                 )::INTEGER AS days_since_last_order
             FROM last_order_dates lod
             CROSS JOIN ref

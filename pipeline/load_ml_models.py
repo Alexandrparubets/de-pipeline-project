@@ -62,3 +62,5 @@ def load_ml_models_table(
         f"roc_auc={roc_auc:.4f}, threshold={threshold}"
     )
     logger.info("✅ ML models table load completed\n")
+
+    return model_version
