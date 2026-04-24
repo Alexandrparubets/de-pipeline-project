@@ -313,11 +313,16 @@ def create_ml_models_table(engine: Engine) -> None:
     CREATE TABLE IF NOT EXISTS {settings.ml_models_table} (
         id SERIAL PRIMARY KEY,
         model_name TEXT NOT NULL,
-        model_path TEXT NOT NULL,
+        model_path TEXT,
         model_version INTEGER,
         threshold DOUBLE PRECISION,
         roc_auc DOUBLE PRECISION,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        f_start INTEGER,
+        f_end INTEGER,
+        t_start INTEGER,
+        t_end INTEGER,
+        is_test BOOLEAN DEFAULT FALSE,
         is_active BOOLEAN DEFAULT TRUE
     );
     """

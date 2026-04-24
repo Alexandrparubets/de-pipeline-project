@@ -43,13 +43,20 @@ def run_train():
 
     model_name = type(model).__name__
 
-    save_model(model) # train_model.py
-
-    model_id = load_ml_models_table(
+    if roc_auc >= settings.roc_auc_threshold:
+        save_model(model) # train_model.py
+    else:
+        logger.info("⏭ Model skipped (roc_auc below threshold)")
+        
+    model_id, train_id = load_ml_models_table(
     engine,
     model_name,
     model_path,
     roc_auc,
+    f_start,
+    f_end,
+    t_start,
+    t_end,
     threshold
     ) # load_ml_models
 
