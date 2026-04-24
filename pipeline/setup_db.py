@@ -359,3 +359,29 @@ def create_ml_model_baselines_table(engine) -> None:
         conn.execute(text(create_sql))
 
     logger.info(f"📊 Baseline table ready: '{settings.ml_model_baselines_table}'")
+
+
+def create_scoring_runs_table(engine) -> None:
+    create_sql = f"""
+    CREATE TABLE IF NOT EXISTS {settings.scoring_runs_table} (
+        id SERIAL PRIMARY KEY,
+        model_id INTEGER NOT NULL,
+        rows_count INTEGER,
+        f_start INTEGER,
+        f_end INTEGER,
+        drift_detected_mean BOOLEAN,
+        drift_detected_std BOOLEAN,
+        drift_threshold DOUBLE PRECISION,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+        CONSTRAINT fk_scoring_model
+            FOREIGN KEY (model_id)
+            REFERENCES {settings.ml_models_table}(id)
+            ON DELETE RESTRICT
+    );
+    """
+
+    with engine.begin() as conn:
+        conn.execute(text(create_sql))
+
+    logger.info(f"📊 Scoring runs table ready: '{settings.scoring_runs_table}'")

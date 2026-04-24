@@ -1,11 +1,12 @@
 from pipeline.connection import get_engine, test_connection
 from pipeline.build_ml_score import build_ml_score_df
-from pipeline.setup_db import create_c_score_table
+from pipeline.setup_db import create_c_score_table, create_scoring_runs_table
 from pipeline.logger_config import get_logger
 from pipeline.config import settings
 from pipeline.score_model import score_model, model_to_db, insert_scores, get_next_run_id
 from pipeline.get_active_model import get_active_model
 from pipeline.build_current_stats import build_current_stats, load_baseline, drift_check
+from pipeline.load_scoring_runs_table import load_scoring_runs_table
 
 
 
@@ -39,6 +40,7 @@ def run_scoring():
     y_prob = score_model(X, model_path) # score_model.py
 
     create_c_score_table(engine) # setup_db.py
+    create_scoring_runs_table(engine) # setup_db.py
 
     run_id = get_next_run_id(engine) # score_model.py
 
@@ -46,10 +48,23 @@ def run_scoring():
 
     insert_scores(engine, df_result, run_id, customer_scores_table) # score_model.py
 
-    baseline_df = load_baseline(engine, model_id)
-    current_df = build_current_stats(X)
+    baseline_df = load_baseline(engine, model_id) # build_current_stats.py
+    current_df = build_current_stats(X) # build_current_stats.py
 
-    df_compare = drift_check(baseline_df, current_df)
+    drift_threshold=20
+
+    drift_detected_mean, drift_detected_std = drift_check(drift_threshold, baseline_df, current_df) # build_current_stats.py
+
+    rows_count = len(df)
+
+    load_scoring_runs_table(engine,
+    model_id,
+    rows_count,
+    f_start,
+    f_end,
+    drift_detected_mean,
+    drift_detected_std,
+    drift_threshold)
 
     logger.info(f"✅ ML Scoring finished\n --------------------------------------------- python -m pipeline.run_scoring")
 

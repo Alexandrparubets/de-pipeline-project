@@ -50,6 +50,8 @@ class Settings:
     c_scores: str = os.getenv("C_SCORES", "customer_scores")
     ml_models_table: str = os.getenv("ML_MODELS_TABLE", "ml_models")
     ml_model_baselines_table: str = os.getenv("ML_MODEL_BASELINES_TABLE", "baselines_dataset")
+    scoring_runs_table: str = os.getenv("SCORING_RUNS_TABLE", "scoring_runs")
+    
     
     
     source_file: str = os.getenv(

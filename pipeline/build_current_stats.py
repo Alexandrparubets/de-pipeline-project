@@ -45,7 +45,7 @@ def load_baseline(engine, model_id: int) -> pd.DataFrame:
     return pd.read_sql(query, engine, params={"model_id": model_id})
 
 
-def drift_check(baseline_df: pd.DataFrame, current_df: pd.DataFrame) -> pd.DataFrame:
+def drift_check(threshold, baseline_df: pd.DataFrame, current_df: pd.DataFrame) -> pd.DataFrame:
     logger.info("🔍 Starting drift check")
 
     df_compare = baseline_df.merge(
@@ -83,7 +83,7 @@ def drift_check(baseline_df: pd.DataFrame, current_df: pd.DataFrame) -> pd.DataF
         * 100
     )
 
-    threshold = 20
+    #threshold = 20
 
     df_compare["is_drift"] = (
         (df_compare["mean_diff_pct"].abs() > threshold) |
@@ -142,6 +142,9 @@ def drift_check(baseline_df: pd.DataFrame, current_df: pd.DataFrame) -> pd.DataF
     ):
         logger.info(f"📊 Drift summary:\n{df_log}\n")
 
-    return df_compare
+    drift_detected_mean = (df_compare["mean_diff_pct"].abs() > threshold).any()
+    drift_detected_std  = (df_compare["std_diff_pct"].abs() > threshold).any()
+
+    return drift_detected_mean, drift_detected_std
 
 
