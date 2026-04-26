@@ -20,7 +20,7 @@ def run_scoring():
     engine = get_engine()
     test_connection(engine)
 
-    shift = 20
+    shift = settings.scoring_shift
 
     f_start = settings.f_start + shift
     f_end = settings.f_end + shift

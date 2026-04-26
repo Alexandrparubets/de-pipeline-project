@@ -67,6 +67,8 @@ class Settings:
     f_end: int = int(os.getenv("F_END", 30))
     t_start: int = int(os.getenv("T_START", 30))
     t_end: int = int(os.getenv("T_END", 0))
+    train_shift: int = int(os.getenv("TRAIN_SHIFT", 60))
+    scoring_shift: int = int(os.getenv("SCORING_SHIFT", 0))
 
     model_path: str = os.getenv("MODEL_PATH", "models/model.pkl")
 

@@ -21,10 +21,12 @@ def run_train():
     create_ml_models_table(engine)
     create_ml_model_baselines_table(engine)
 
-    f_start = settings.f_start
-    f_end = settings.f_end
-    t_start = settings.t_start
-    t_end = settings.t_end
+    shift = settings.train_shift
+
+    f_start = settings.f_start + shift
+    f_end = settings.f_end + shift
+    t_start = settings.t_start + shift
+    t_end = settings.t_end + shift
     dwh_table = settings.dwh_table
     threshold = settings.threshold
     model_path = settings.model_path
