@@ -304,7 +304,7 @@ def create_c_score_table(engine: Engine) -> None:
         conn.execute(text(create_table_sql))
 
     logger.info(
-        f"📊 C_SCORE table ready: table '{settings.c_scores}' is created (or already exists).\n"
+        f"📊 C_SCORE table ready: table '{settings.c_scores}' is created (or already exists)."
     )
 
 
@@ -330,7 +330,7 @@ def create_ml_models_table(engine: Engine) -> None:
     with engine.begin() as conn:
         conn.execute(text(create_sql))
 
-    logger.info(f"📊 ML models table ready: {settings.ml_models_table} is created (or already exists).\n")
+    logger.info(f"📊 ML models table ready: {settings.ml_models_table} is created (or already exists).")
     
 
 def create_ml_model_baselines_table(engine) -> None:
@@ -358,13 +358,13 @@ def create_ml_model_baselines_table(engine) -> None:
     with engine.begin() as conn:
         conn.execute(text(create_sql))
 
-    logger.info(f"📊 Baseline table ready: '{settings.ml_model_baselines_table}'")
+    logger.info(f"📊 Baseline table ready: '{settings.ml_model_baselines_table}'\n")
 
 
 def create_scoring_runs_table(engine) -> None:
     create_sql = f"""
     CREATE TABLE IF NOT EXISTS {settings.scoring_runs_table} (
-        id SERIAL PRIMARY KEY,
+        id INTEGER PRIMARY KEY,
         model_id INTEGER NOT NULL,
         rows_count INTEGER,
         f_start INTEGER,
@@ -384,4 +384,4 @@ def create_scoring_runs_table(engine) -> None:
     with engine.begin() as conn:
         conn.execute(text(create_sql))
 
-    logger.info(f"📊 Scoring runs table ready: '{settings.scoring_runs_table}'")
+    logger.info(f"📊 Scoring runs table ready: '{settings.scoring_runs_table}'\n")

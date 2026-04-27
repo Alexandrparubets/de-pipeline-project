@@ -8,6 +8,7 @@ logger = get_logger(__name__)
 
 def load_scoring_runs_table(
     engine,
+    run_id: int,
     model_id: int,
     rows_count: int,
     f_start: int,
@@ -20,6 +21,7 @@ def load_scoring_runs_table(
 
     insert_sql = text(f"""
         INSERT INTO {settings.scoring_runs_table} (
+            id,
             model_id,
             rows_count,
             f_start,
@@ -29,6 +31,7 @@ def load_scoring_runs_table(
             drift_threshold
         )
         VALUES (
+            :id,
             :model_id,
             :rows_count,
             :f_start,
@@ -41,6 +44,7 @@ def load_scoring_runs_table(
     """)
 
     params = {
+        "id": int(run_id),
         "model_id": int(model_id),
         "rows_count": int(rows_count),
         "f_start": int(f_start),

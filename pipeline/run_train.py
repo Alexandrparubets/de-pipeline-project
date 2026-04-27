@@ -33,7 +33,7 @@ def run_train():
 
     logger.info(
     f"🪟 Train windows: f_start={f_start}, "
-    f"f_end={f_end}, t_start={t_start}, t_end={t_end}"
+    f"f_end={f_end}, t_start={t_start}, t_end={t_end}\n"
     )
     
     df, X, y = build_ml_dataset_df(engine, dwh_table, f_start, f_end, t_start, t_end) #build_ml_dataset.py

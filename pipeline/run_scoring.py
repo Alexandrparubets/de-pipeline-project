@@ -58,13 +58,14 @@ def run_scoring():
     rows_count = len(df)
 
     load_scoring_runs_table(engine,
+    run_id,
     model_id,
     rows_count,
     f_start,
     f_end,
     drift_detected_mean,
     drift_detected_std,
-    drift_threshold)
+    drift_threshold) # load_scoring_runs_table.py
 
     logger.info(f"✅ ML Scoring finished\n --------------------------------------------- python -m pipeline.run_scoring")
 

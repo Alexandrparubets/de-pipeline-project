@@ -56,7 +56,7 @@ def score_model(X, model_path):
     f"📈 Probability stats: min={y_prob.min():.4f}, "
     f"max={y_prob.max():.4f}, avg={y_prob.mean():.4f}"
     )
-    logger.info("✅ Scoring completed")
+    logger.info("✅ Scoring completed\n")
 
     return y_prob
 
@@ -180,5 +180,5 @@ def get_next_run_id(engine) -> int:
     with engine.begin() as conn:
         run_id = conn.execute(query).scalar() or 1
 
-    logger.info(f"🔢 Scoring run_id: {run_id}")
+    logger.info(f"🔢 Customer Scoring run_id: {run_id}")
     return run_id

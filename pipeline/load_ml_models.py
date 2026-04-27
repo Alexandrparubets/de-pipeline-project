@@ -40,11 +40,11 @@ def load_ml_models_table(
         model_version = conn.execute(model_version_sql).scalar()
 
         if is_test:
-            conn.execute(
-                text(f"UPDATE {settings.ml_models_table} SET is_active = FALSE")
-            )
+            # conn.execute(
+            #     text(f"UPDATE {settings.ml_models_table} SET is_active = FALSE")
+            # )
             is_active = True
-            logger.info("🔄 Previous active models deactivated")
+            # logger.info("🔄 Previous active models deactivated")
         else:
             is_active = False
             model_path = None
@@ -102,7 +102,7 @@ def load_ml_models_table(
         result = conn.execute(insert_sql, params)
         train_id = result.scalar()
 
-    logger.info(f"🆔 train_id: {train_id}")
+    logger.info(f"🆔 model_id: {train_id}")
 
         
 
