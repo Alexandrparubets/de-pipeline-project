@@ -1,159 +1,180 @@
-# 🚀 Data Engineering Pipeline (Python + PostgreSQL)
+# 🧠 ML Data Pipeline (End-to-End)
 
-Production-like ETL pipeline with incremental loading, data quality checks, metadata tracking, and historical data validation.
+Production-like Data Engineering + ML pipeline:
 
----
 
-## 📌 Project Overview
+SOURCE → RAW → STG → DWH → MART → ML → SCORING → DRIFT CHECK
 
-This project demonstrates a full-cycle data pipeline built with a focus on real-world engineering practices:
-
-**Source → RAW → Transform → STG → Quality → DWH → MART**
-
-Key goal: build a reliable, observable, and scalable pipeline — not just a script.
 
 ---
 
-## 🏗️ Architecture
+## ⚙️ Tech Stack
 
-- **Source**: Excel file
-- **RAW layer**: file storage with change detection (SHA256)
-- **Transform layer**: data cleaning and normalization (pandas)
-- **STG (Staging)**: intermediate PostgreSQL table
-- **DWH (Warehouse)**: cleaned and deduplicated data
-- **MART**: aggregated business metrics
-- **Metadata**: pipeline_runs table (run tracking)
+- Python (pandas, scikit-learn)
+- PostgreSQL
+- SQLAlchemy
+- joblib
+- Logging (context-based)
 
 ---
 
-## ⚙️ Key Features
+## 🏗 Architecture
 
-### ✅ Incremental Loading (Watermark)
-- Loads only new data using `InvoiceDate`
-- Prevents reprocessing entire dataset
+### 1. Data Pipeline
 
-### 🔐 Deduplication
-- Uses `row_hash` (SHA256)
-- Protects against duplicate records
 
-### 🧪 Data Quality Checks
-- No NULLs in required fields
-- No negative quantity or revenue
-- No duplicate hashes
-- Stops pipeline on failure
+Excel → RAW → STG → DWH → MART
 
-### 📊 Data Mart
-- Daily aggregation:
-  - revenue
-  - number of orders
-  - quantity
 
-### 📈 Metadata & Observability
-- `pipeline_runs` table tracks:
-  - run_id
-  - status (running/success/failed)
-  - watermark
-  - rows loaded
-  - errors
-
-### 🧠 Historical Data Control
-- `historical_hash` detects changes in historical data
-- If history changes → full reload is triggered
-
-### 🧯 Error Handling
-- Controlled errors (validation, source issues)
-- Unexpected errors with full traceback
-
-### ⚡ No-Op Runs
-- If no new data → pipeline exits early
+- **RAW** → snapshot + hash контроль
+- **STG** → очистка (SQL)
+- **DWH** → чистые данные (`orders_clean`)
+- **MART** → агрегаты (`sales_daily`)
 
 ---
 
-## 📂 Project Structure
-de_pipeline_project/
-│
-├── data/
-│ ├── source/
-│ ├── raw/
-│ └── processed/
-│
-├── pipeline/
-│ ├── extract.py
-│ ├── transform.py
-│ ├── load.py
-│ ├── quality.py
-│ ├── metadata.py
-│ ├── logger_config.py
-│ ├── config.py
-│ └── pipeline.py
-│
-└── README.md
+### 2. ML Pipeline
+
+
+DWH → Feature Engineering → Train → Model Registry
+
+
+- Feature windows (`f_start`, `f_end`)
+- Target windows (`t_start`, `t_end`)
+- Model: `GradientBoostingClassifier`
+- Metric: ROC AUC
 
 ---
 
-## ▶️ How to Run
+### 3. Model Registry (`ml_models`)
+
+Хранит:
+
+- model_path
+- roc_auc
+- threshold
+- model_version
+- is_active
+- окна обучения
+
+---
+
+### 4. Scoring
+
+
+Active Model → New Window → Predictions → Segments
+
+
+Сегменты:
+
+- high ≥ 0.7
+- medium ≥ 0.4
+- low < 0.4
+
+---
+
+### 5. Drift Detection
+
+
+Baseline (train) vs Current (scoring)
+
+
+Метрики:
+
+- mean
+- std
+- median
+- q25 / q75
+
+Drift считается по % отклонению.
+
+---
+
+### 6. Tracking Tables
+
+#### `ml_models`
+Реестр моделей
+
+#### `ml_model_baselines`
+Baseline статистика по фичам
+
+#### `customer_scores`
+Результаты скоринга
+
+#### `scoring_runs`
+Метаданные скоринга:
+- model_id
+- rows_count
+- drift_detected_mean
+- drift_detected_std
+- drift_threshold
+
+---
+
+## 📊 Logging
+
+Пример:
+
+
+🚀 ML scoring started
+🪟 Scoring windows: f_start=80, f_end=50
+📊 Segment ratio: {'low': 49%, 'medium': 31%, 'high': 20%}
+📊 Drift summary:
+🔴 days_since_last_order ...
+
+
+---
+
+## 🔄 Incremental Logic
+
+- Watermark (InvoiceDate)
+- Deduplication via `row_hash`
+- `ON CONFLICT DO NOTHING`
+
+---
+
+## 🧪 Experiments
+
+Поддержка:
+
+- смещения окон (`train_shift`, `scoring_shift`)
+- drift анализа
+- сравнения моделей
+
+---
+
+## 🚀 How to Run
+
+### 1. Train
 
 ```bash
-python -m pipeline.pipeline
-⚙️ Configuration
-
-Environment variables (stored in .env):
-
-DB_HOST=
-DB_PORT=
-DB_NAME=
-DB_USER=
-DB_PASSWORD=
-
-SOURCE_FILE=
-RAW_DIR=
-PROCESSED_DIR=
-
-WAREHOUSE_TABLE=
-MART_TABLE=
-
-🧪 Example Data
-
-Dataset: Online Retail (Excel)
-~540k rows
-
-🔄 Pipeline Logic
-Check source file
-Copy to RAW (if changed)
-Read data
-Apply incremental filter (watermark)
-Clean and transform
-Run quality checks
-Load to STG
-Load to DWH (deduplicated)
-Build MART
-Save metadata
-⚠️ Edge Cases Covered
-Missing source file
-Corrupted Excel file
-Empty dataset after cleaning
-Duplicate rows
-Historical data changes
-No new data
-🧠 What This Project Demonstrates
-Real ETL architecture (not toy script)
-Incremental processing
-Data consistency handling
-Error resilience
-Observability (logs + metadata)
-Clean modular design
-🚀 Future Improvements
-Airflow orchestration
-Dockerization
-Partitioning in DWH
-Performance optimization (chunking / streaming)
-API as data source
-Unit tests for pipeline stages
-👨‍💻 Author
-
-Alexandr Parubets
-Data Engineering Learner → Future AI Systems Engineer
-
-⭐ If you like this project
-
-Give it a star ⭐ and follow for updates
+python -m pipeline.run_train
+2. Scoring
+python -m pipeline.run_scoring
+📁 Project Structure
+pipeline/
+├── run_train.py
+├── run_scoring.py
+├── train_model.py
+├── score_model.py
+├── build_drift_baseline.py
+├── build_current_stats.py
+├── load_ml_models.py
+├── load_scoring_runs_table.py
+└── ...
+💡 Key Concepts
+SQL-first transformations
+Feature windows
+Model registry
+Drift detection
+Production-like logging
+📌 Status
+✔ ETL pipeline
+✔ ML training
+✔ Scoring
+✔ Drift detection
+✔ Model registry
+🔥 Next Steps
+Retraining strategy (auto)
+Monitoring dashboard
+A/B testing моделей
