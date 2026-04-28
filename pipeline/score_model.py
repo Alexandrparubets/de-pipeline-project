@@ -1,0 +1,184 @@
+import joblib
+import pandas as pd
+import numpy as np
+from sqlalchemy import text
+from pipeline.logger_config import get_logger
+from pipeline.config import settings
+import os
+
+logger = get_logger(__name__)
+
+
+def score_model(X, model_path):
+
+    logger.info("\n--------- MODEL SCORING ---------")
+    logger.info("🎯 Starting model scoring")
+
+    logger.info(f"📦 Loading model from {settings.model_path}")
+   
+    try:
+        model = joblib.load(model_path)
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Model file not found: {model_path}")
+    except Exception as e:
+        raise RuntimeError(f"Failed to load model: {e}")
+
+    logger.info(f"📦 Model loaded from {model_path}")
+    logger.info(f"🧠 Model features: {list(model.feature_names_in_)}")
+    logger.info(f"📥 Input features: {list(X.columns)}")
+
+    # 1. Check that model has feature_names_in_
+    if not hasattr(model, "feature_names_in_"):
+        raise ValueError("Model has no feature_names_in_")
+
+    model_features = list(model.feature_names_in_)
+    input_features = list(X.columns)
+
+    # 2. Check for missing columns
+    missing_cols = set(model_features) - set(input_features)
+    if missing_cols:
+        raise ValueError(f"Missing columns for scoring: {missing_cols}")
+
+    # 3. (optional) handle extra columns
+    extra_cols = set(input_features) - set(model_features)
+    if extra_cols:
+        logger.warning(f"⚠️ Extra columns will be ignored: {extra_cols}")
+
+    # 4. Align column order with the model
+    X = X[model_features]
+
+    logger.info(f"✅ Features aligned for scoring: {model_features}")
+
+    logger.info(f"📊 Scoring data shape: {X.shape}")
+    y_prob = model.predict_proba(X)[:, 1]
+
+    logger.info(
+    f"📈 Probability stats: min={y_prob.min():.4f}, "
+    f"max={y_prob.max():.4f}, avg={y_prob.mean():.4f}"
+    )
+    logger.info("✅ Scoring completed\n")
+
+    return y_prob
+
+
+def model_to_db(df, X, y_prob, threshold, model_id, run_id):
+
+    logger.info("\n--------- PREPARE FOR DB ---------")
+    logger.info("📤 Preparing data for DB insert")
+
+    if len(X) != len(y_prob):
+        raise ValueError("Length mismatch between X and y_prob")
+
+    logger.info(f"📊 Input sizes → X: {len(X)}, y_prob: {len(y_prob)}")
+
+    if not (0 <= threshold <= 1):
+        raise ValueError(f"Invalid THRESHOLD: {threshold}")
+
+    df_result = df.loc[X.index].copy()
+
+    df_result["run_id"] = run_id
+
+    df_result["model_id"] = model_id
+
+    df_result["probability"] = np.array(y_prob)
+
+    df_result["prediction"] = (df_result["probability"] >= threshold).astype(int)
+
+    conditions = [
+        df_result["probability"] >= settings.segment_high_threshold,
+        df_result["probability"] >= settings.segment_medium_threshold
+    ]
+
+    choices = ["high", "medium"]
+
+    df_result["segment"] = np.select(conditions, choices, default="low")
+    df_result = df_result[
+    ["customerid", "model_id", "run_id", "probability", "prediction", "segment"]
+    ]
+
+    logger.info(f"🎯 Using threshold: {threshold}")
+    logger.info(f"📊 Predictions distribution: {df_result['prediction'].value_counts().to_dict()}")
+
+    logger.info(f"📦 Prepared rows for DB insert: {len(df_result)}")
+    logger.info(f"🧩 Output columns: {list(df_result.columns)}")
+
+    segment_counts = df_result["segment"].value_counts().to_dict()
+
+    logger.info(f"📊 Segment distribution (run_id={run_id}): {segment_counts}")
+
+    segment_ratio = (df_result["segment"].value_counts(normalize=True) * 100).round(0).astype(int)
+    segment_ratio = {k: f"{v}%" for k, v in segment_ratio.to_dict().items()}
+
+    logger.info(f"📈 Segment ratio (run_id={run_id}): {segment_ratio}")
+
+    avg_prob_by_segment = (
+        df_result
+        .groupby("segment")["probability"]
+        .mean()
+        .round(2)
+        .to_dict()
+    )
+
+    logger.info(f"📊 Avg probability by segment: {avg_prob_by_segment}")
+
+    pred_ratio_by_segment = (
+        df_result
+        .groupby("segment")["prediction"]
+        .value_counts(normalize=True)
+        .mul(100)
+        .round(0)
+        .astype(int)
+        .unstack(fill_value=0)
+        .rename(columns={0: "pred_0", 1: "pred_1"})
+    )
+
+    pred_ratio_by_segment = {
+        k: {kk: f"{vv}%" for kk, vv in v.items()}
+        for k, v in pred_ratio_by_segment.to_dict(orient="index").items()
+    }
+
+    logger.info(f"📊 Prediction distribution by segment: {pred_ratio_by_segment}")
+
+    return df_result
+
+
+def insert_scores(engine, df_result, run_id, table_name: str) -> None:
+    logger.info("\n--------- DB INSERT ---------")
+    logger.info("📥 Starting insert into scores table")
+
+    if df_result.empty:
+        logger.warning("⚠️ No data to insert into scores table")
+        return
+    
+    insert_sql = f"""
+        INSERT INTO {table_name} (run_id, customerid, model_id, probability, prediction, segment)
+        VALUES (:run_id, :customerid, :model_id, :probability, :prediction, :segment)
+    """
+
+    data = df_result.to_dict(orient="records")
+
+    logger.info(f"📦 Rows to insert: {len(df_result)}")
+    logger.info(f"🗂 Target table: {table_name}")
+
+    #logger.info(f"🧹 Clearing target table: {table_name}")
+    #logger.info("✅ Target table cleared")
+
+    with engine.begin() as conn:
+        #conn.execute(text(f"TRUNCATE TABLE {table_name}"))
+        conn.execute(text(insert_sql), data)
+    
+    logger.info(f"🧾 Inserting scoring results for run_id={run_id}\n")
+
+    
+
+
+def get_next_run_id(engine) -> int:
+    query = text(f"""
+        SELECT COALESCE(MAX(run_id), 0) + 1
+        FROM {settings.c_scores}
+    """)
+    with engine.begin() as conn:
+        run_id = conn.execute(query).scalar() or 1
+
+    logger.info(f"🔢 Customer Scoring run_id: {run_id}")
+    return run_id

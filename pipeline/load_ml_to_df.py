@@ -1,0 +1,75 @@
+import pandas as pd
+from sqlalchemy import text
+from pipeline.config import settings
+from pipeline.logger_config import get_logger
+
+logger = get_logger(__name__)
+
+
+def load_ml_dataset(engine):
+    """
+    Loads an ML dataset from a table and splits it into X (features) and y (target)
+    """
+
+    table_name = settings.ml_table
+    logger.info(f"📥 Loading ML dataset from table '{table_name}'")
+
+    query = f"""
+        SELECT
+            customerid,
+            orders_count_30,
+            orders_count_7,
+            total_spent_30,
+            avg_order_30,
+            unique_products_30,
+            active_days_30,
+            active_days_7,
+            days_since_last_order,
+            std_order_value,
+            avg_days_between_orders,
+            customer_lifetime_days,
+            total_orders_count,
+            total_spent_lifetime,
+            avg_order_lifetime,
+            order_frequency_ratio,
+            target
+        FROM {table_name};
+        """
+
+    with engine.begin() as conn:
+        df = pd.read_sql(text(query), conn)
+
+    if df.empty:
+        logger.error("❌ ML dataset is empty")
+        raise ValueError("ML dataset is empty")
+    
+    logger.info(f"📊 Rows loaded: {len(df)}")
+
+    # Features
+    X = df[
+        [
+           # "orders_count_30",
+           # "orders_count_7",
+            "total_spent_30",
+            "avg_order_30",
+            "unique_products_30",
+           # "active_days_30",
+           # "active_days_7",
+            "days_since_last_order",
+            #"std_order_value",
+            #"avg_days_between_orders",
+            "customer_lifetime_days",
+            "total_orders_count",
+            #"total_spent_lifetime",
+            #"avg_order_lifetime",
+            #"order_frequency_ratio"
+        ]
+    ].copy()
+
+    # Target
+    y = df["target"].copy()
+
+    logger.info(f"✅ ML dataset prepared: df_shape={df.shape}, X_shape={X.shape}, y_shape={y.shape}\n")
+
+
+    return X, y, df

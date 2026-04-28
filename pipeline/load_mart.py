@@ -20,7 +20,7 @@ def load_data_mart(engine) -> int:
     mart_table = settings.mart_table
 
     logger.info(
-        f"Starting MART load: source='{dwh_table}', target='{mart_table}'"
+        f"🚀 Starting MART load: source='{dwh_table}', target='{mart_table}'"
     )
 
     try:
@@ -29,7 +29,7 @@ def load_data_mart(engine) -> int:
         mart_rows = get_mart_row_count(engine, mart_table)
 
         logger.info(
-            f"MART load finished: table='{mart_table}', rows={mart_rows}"
+            f"✅ MART load finished: table='{mart_table}', rows={mart_rows}\n"
         )
 
         return mart_rows
@@ -46,7 +46,7 @@ def truncate_mart_table(engine, table_name: str) -> None:
     with engine.begin() as conn:
         conn.execute(text(f"TRUNCATE TABLE {table_name}"))
 
-    logger.info(f"MART table truncated: '{table_name}'")
+    logger.info(f"🧹 MART table truncated: '{table_name}'")
 
 
 def insert_rows_to_mart(engine, dwh_table: str, mart_table: str) -> None:
@@ -73,7 +73,7 @@ def insert_rows_to_mart(engine, dwh_table: str, mart_table: str) -> None:
     with engine.begin() as conn:
         conn.execute(text(insert_sql))
 
-    logger.info(f"Data inserted into MART table '{mart_table}'")
+    logger.info(f"📊 Data inserted into MART table '{mart_table}'")
 
 
 def get_mart_row_count(engine, table_name: str) -> int:

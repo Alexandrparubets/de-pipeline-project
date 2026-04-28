@@ -31,10 +31,29 @@ class Settings:
     "revenue": "NUMERIC",
     "row_hash": "TEXT",
 })
+    raw_stg_table: str = os.getenv("RAW_STG_TABLE", "raw_stg_orders")
+    raw_stg_schema: dict[str, str] = field(default_factory=lambda: {
+    "invoiceno": "TEXT",
+    "stockcode": "TEXT",
+    "description": "TEXT",
+    "quantity": "INTEGER",
+    "invoicedate": "TIMESTAMP",
+    "unitprice": "NUMERIC",
+    "customerid": "INTEGER",
+    "country": "TEXT",
+})
     dwh_table: str = os.getenv("DWH_TABLE", "orders_clean")
     mart_table: str = os.getenv("MART_TABLE", "sales_daily")
     pipeline_runs_table: str = os.getenv("PIPELINE_RUNS_TABLE", "pipeline_runs")
-
+    ml_table: str = os.getenv("ML_TABLE", "customer_ml_dataset")
+    cf_table: str = os.getenv("CF_TABLE", "customer_features")
+    c_scores: str = os.getenv("C_SCORES", "customer_scores")
+    ml_models_table: str = os.getenv("ML_MODELS_TABLE", "ml_models")
+    ml_model_baselines_table: str = os.getenv("ML_MODEL_BASELINES_TABLE", "baselines_dataset")
+    scoring_runs_table: str = os.getenv("SCORING_RUNS_TABLE", "scoring_runs")
+    
+    
+    
     source_file: str = os.getenv(
     "SOURCE_FILE",
     "data/source/online_retail.xlsx",
@@ -43,6 +62,22 @@ class Settings:
     raw_file_prefix: str = os.getenv("RAW_FILE_PREFIX", "online_retail")
 
     chunk_size: int = int(os.getenv("CHUNK_SIZE", 5000))
+    historical_period: str = os.getenv("HISTORICAL_PERIOD", "30 days")
+    f_start: int = int(os.getenv("F_START", 60))
+    f_end: int = int(os.getenv("F_END", 30))
+    t_start: int = int(os.getenv("T_START", 30))
+    t_end: int = int(os.getenv("T_END", 0))
+    train_shift: int = int(os.getenv("TRAIN_SHIFT", 60))
+    scoring_shift: int = int(os.getenv("SCORING_SHIFT", 0))
+
+    model_path: str = os.getenv("MODEL_PATH", "models/model.pkl")
+
+    threshold: float = float(os.getenv("THRESHOLD", 0.5))
+    roc_auc_threshold: float = float(os.getenv("ROC_AUC_THRESHOLD", 0.7))
+    segment_high_threshold: float = float(os.getenv("SEGMENT_HIGH_THRESHOLD", 0.7))
+    segment_medium_threshold: float = float(os.getenv("SEGMENT_MEDIUM_THRESHOLD", 0.4))
+
+
 
     
 

@@ -39,8 +39,9 @@ def start_pipeline_run(engine: Engine, pipeline_name: str) -> int:
         ).scalar()
 
     logger.info(
-        f"Pipeline run started: id={run_id}, pipeline='{pipeline_name}', status='running'"
+        f"🚀 Pipeline run started: Pipeline: {pipeline_name}"
     )
+    logger.info(f"🆔 New id = {run_id}")
 
     return run_id
 
@@ -90,7 +91,7 @@ def finish_pipeline_run_success(
         )
 
     logger.info(
-        f"Pipeline run finished successfully: id={run_id}, status='success'"
+        f"✅ Pipeline run finished successfully: id={run_id}, status='success'\n"
     )
 
 
@@ -147,19 +148,22 @@ def get_last_successful_watermark(engine: Engine, pipeline_name: str):
             {"pipeline_name": pipeline_name},
         ).fetchone()
 
+    last_watermark = result.watermark_value
+    boundary_date = result.boundary_date 
+
     if result is not None:
-        logger.info(
-            f"Last successful watermark found for pipeline '{pipeline_name}': {result}"
-        )
+        last_watermark = result.watermark_value
+        boundary_date = result.boundary_date
+        logger.info(f"📅 Last watermark: {last_watermark}")
+        logger.info(f"🧱 Last boundary date: {boundary_date}")
     else:
-        logger.info(
-            f"No successful watermark found for pipeline '{pipeline_name}'."
-        )
+        logger.info(f"⚠️ No successful watermark found.")
+        logger.info(f"⚠️ No successful boundary date found.")
+
     if result is None:
         return None, None
 
-    last_watermark = result.watermark_value
-    boundary_date = result.boundary_date   
+     
 
     return last_watermark, boundary_date
 
@@ -179,5 +183,11 @@ def get_last_successful_historical_hash(engine, pipeline_name: str) -> str | Non
             text(query),
             {"pipeline_name": pipeline_name},
         ).scalar()
+
+    if result is not None:
+        logger.info(f"🧬 Last historical hash: {result}\n")
+    else:
+        logger.info(f"⚠️ No successful watermark found.")
+        
 
     return result
